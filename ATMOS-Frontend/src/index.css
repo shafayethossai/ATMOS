@@ -128,3 +128,6 @@ body {
 /* Logo blend: remove white background in light mode, show normally in dark */
 .atmos-logo { mix-blend-mode: multiply; }
 :root[data-theme="dark"] .atmos-logo { mix-blend-mode: normal; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .atmos-logo { mix-blend-mode: normal; }
+}

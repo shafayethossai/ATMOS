@@ -76,7 +76,7 @@ export default function Profile() {
     setTimeout(() => setPwSaved(false), 2500)
   }
 
-  const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark'
+  const nextTheme = theme === 'dark' ? 'light' : 'dark'
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
