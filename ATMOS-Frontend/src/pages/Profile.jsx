@@ -89,10 +89,10 @@ export default function Profile() {
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <AtmosLogo size={40} />
+          <AtmosLogo size={62} />
           <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1 }}>ATMOS</div>
-            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>Air Quality Monitor</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1, letterSpacing: '0.04em' }}>ATMOS</div>
+            <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 3, letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>AIR QUALITY · MONITORING</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -191,7 +191,7 @@ export default function Profile() {
                 <label style={labelStyle}>CURRENT PASSWORD</label>
                 <div style={{ position: 'relative' }}>
                   <input type={showCur ? 'text' : 'password'} value={currentPw}
-                    onChange={e => setCurrentPw(e.target.value)} placeholder="Enter current password"
+                    onChange={e => setCurrentPw(e.target.value)} placeholder="Enter your current password"
                     style={{ width: '100%', padding: '10px 42px 10px 14px', border: '1px solid var(--border)', borderRadius: 10, fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--text-1)', background: 'var(--surface-2)', outline: 'none', boxSizing: 'border-box' }}
                     onFocus={e => (e.currentTarget.style.borderColor = '#2563eb')}
                     onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
@@ -205,7 +205,7 @@ export default function Profile() {
                   <label style={labelStyle}>NEW PASSWORD</label>
                   <div style={{ position: 'relative' }}>
                     <input type={showNew ? 'text' : 'password'} value={newPw}
-                      onChange={e => setNewPw(e.target.value)} placeholder="Min. 8 characters"
+                      onChange={e => setNewPw(e.target.value)} placeholder="Create a new password"
                       style={{ width: '100%', padding: '10px 42px 10px 14px', border: '1px solid var(--border)', borderRadius: 10, fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--text-1)', background: 'var(--surface-2)', outline: 'none', boxSizing: 'border-box' }}
                       onFocus={e => (e.currentTarget.style.borderColor = '#2563eb')}
                       onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
@@ -218,7 +218,7 @@ export default function Profile() {
                   <label style={labelStyle}>CONFIRM PASSWORD</label>
                   <div style={{ position: 'relative' }}>
                     <input type={showCf ? 'text' : 'password'} value={confirmPw}
-                      onChange={e => setConfirmPw(e.target.value)} placeholder="Repeat new password"
+                      onChange={e => setConfirmPw(e.target.value)} placeholder="Confirm your new password"
                       style={{ width: '100%', padding: '10px 42px 10px 14px', border: `1px solid ${confirmPw && confirmPw !== newPw ? '#dc2626' : 'var(--border)'}`, borderRadius: 10, fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--text-1)', background: 'var(--surface-2)', outline: 'none', boxSizing: 'border-box' }}
                       onFocus={e => (e.currentTarget.style.borderColor = '#2563eb')}
                       onBlur={e => (e.currentTarget.style.borderColor = confirmPw && confirmPw !== newPw ? '#dc2626' : 'var(--border)')}

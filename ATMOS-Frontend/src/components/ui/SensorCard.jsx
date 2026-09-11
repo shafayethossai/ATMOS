@@ -6,30 +6,41 @@ export function SensorCard({ sensor }) {
   const safePct  = pct(sensor.safe, sensor.max)
   const barColor = getSensorBarColor(sensor)
   const isOver   = sensor.value > sensor.safe
+  const isIndoor = !!sensor.indoor
 
   return (
     <div
       style={{
-        background: 'var(--surface)', border: '1px solid var(--border)',
+        background: 'var(--surface)',
+        border: `1px solid ${isIndoor ? 'var(--border)' : isOver ? `${barColor}50` : 'var(--border)'}`,
         borderRadius: 14, padding: '12px 10px 12px 14px',
         display: 'flex', flexDirection: 'column', gap: 6,
         boxShadow: 'var(--shadow-card)', transition: 'box-shadow 0.2s, border-color 0.2s',
-        cursor: 'default',
+        cursor: 'default', opacity: isIndoor ? 0.85 : 1,
       }}
       onMouseEnter={e => {
         e.currentTarget.style.boxShadow = 'var(--shadow-hover)'
-        e.currentTarget.style.borderColor = 'var(--border-strong)'
+        e.currentTarget.style.borderColor = isIndoor ? 'var(--border-strong)' : isOver ? barColor : 'var(--border-strong)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.boxShadow = 'var(--shadow-card)'
-        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.borderColor = isIndoor ? 'var(--border)' : isOver ? `${barColor}50` : 'var(--border)'
       }}
     >
       {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)' }}>
-            {sensor.name}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)' }}>
+              {sensor.name}
+            </span>
+            {isIndoor && (
+              <span style={{
+                fontSize: 7, fontFamily: 'var(--font-mono)', fontWeight: 600,
+                color: sensor.color, background: `${sensor.color}18`,
+                padding: '1px 5px', borderRadius: 4, letterSpacing: '0.04em',
+              }}>INDOOR</span>
+            )}
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{sensor.description}</div>
         </div>
@@ -37,7 +48,7 @@ export function SensorCard({ sensor }) {
           <div style={{
             fontSize: 18, fontWeight: 700,
             fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums',
-            color: isOver ? barColor : 'var(--text-1)', lineHeight: 1,
+            color: isOver ? 'var(--sensor-alert)' : 'var(--text-1)', lineHeight: 1,
           }}>
             {sensor.value}
           </div>
@@ -65,9 +76,13 @@ export function SensorCard({ sensor }) {
         fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)',
       }}>
         <span>0</span>
-        <span style={{ color: isOver ? barColor : 'var(--text-3)', fontWeight: isOver ? 600 : 400 }}>
-          {isOver ? '▲ ABOVE SAFE' : 'WITHIN SAFE'}
-        </span>
+        {isIndoor ? (
+          <span style={{ color: sensor.color, fontWeight: 600 }}>VENTILATION METRIC</span>
+        ) : (
+          <span style={{ color: isOver ? 'var(--sensor-alert)' : 'var(--text-3)', fontWeight: isOver ? 600 : 400 }}>
+            {isOver ? '▲ ABOVE SAFE' : 'WITHIN SAFE'}
+          </span>
+        )}
         <span>{sensor.max}</span>
       </div>
     </div>

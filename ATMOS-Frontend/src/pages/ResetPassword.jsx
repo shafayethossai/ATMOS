@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { resetPassword } from '../api/authApi'
 import {
-  AuthShell, BtnPrimary, EyeToggle, PasswordStrength, Err,
+  AuthShell, BtnPrimary, EyeToggle, PasswordStrength, Err, LogoHeader,
   authCard, inputProps, labelStyle,
 } from '../components/ui/AuthShell'
 
@@ -41,8 +41,9 @@ export default function ResetPassword() {
   if (!email) return null
 
   return (
-    <AuthShell accentColor="#2563eb">
+    <AuthShell>
       <div style={authCard}>
+        <LogoHeader />
         {done ? (
           <div style={{ textAlign: 'center', padding: '12px 0' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 20px' }}>
@@ -70,7 +71,7 @@ export default function ResetPassword() {
               <div>
                 <label style={labelStyle}>NEW PASSWORD</label>
                 <div style={{ position: 'relative' }}>
-                  <input type={showPw ? 'text' : 'password'} placeholder="Min. 8 characters"
+                  <input type={showPw ? 'text' : 'password'} placeholder="Create a new password"
                     value={password} onChange={e => { setPassword(e.target.value); setError('') }} required
                     {...ip} style={{ ...ip.style, paddingRight: 42 }} />
                   <EyeToggle show={showPw} onToggle={() => setShowPw(s => !s)} />
@@ -79,7 +80,7 @@ export default function ResetPassword() {
               </div>
               <div>
                 <label style={labelStyle}>CONFIRM PASSWORD</label>
-                <input type={showPw ? 'text' : 'password'} placeholder="Repeat password"
+                <input type={showPw ? 'text' : 'password'} placeholder="Confirm your new password"
                   value={confirm} onChange={e => { setConfirm(e.target.value); setError('') }} required
                   {...ip}
                   style={{

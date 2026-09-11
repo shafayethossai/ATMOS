@@ -16,8 +16,8 @@ export function ArcGauge({ value, max, safe, color, size = 100, showValue = fals
   const startA  = -210
   const sweep   = 240
   const isOver  = pct > safePct
-  const fillColor = isOver ? (pct > 1.2 * safePct ? '#dc2626' : '#ea580c') : color
-  const textColor = isOver ? (pct > 1.2 * safePct ? '#dc2626' : '#ea580c') : 'var(--text-1)'
+  const fillColor = isOver ? (pct > 1.2 * safePct ? '#FF0000' : '#FF7E00') : color
+  const textColor = isOver ? (pct > 1.2 * safePct ? 'var(--sensor-alert)' : 'var(--sensor-warn)') : 'var(--text-1)'
 
   return (
     <svg width={size} height={size} viewBox="0 0 120 120">
@@ -27,7 +27,8 @@ export function ArcGauge({ value, max, safe, color, size = 100, showValue = fals
       )}
       <path d={arc(startA + sweep * safePct - 2, startA + sweep * safePct + 2, r)} fill="none" stroke="var(--text-3)" strokeWidth="3" strokeLinecap="round" />
       {showValue && (
-        <text x={cx} y={cy + 6} textAnchor="middle" dominantBaseline="middle" fill={textColor} fontSize="13" fontWeight="600" fontFamily="DM Mono, monospace">
+        <text x={cx} y={cy + 6} textAnchor="middle" dominantBaseline="middle"
+          style={{ fill: textColor }} fontSize="13" fontWeight="600" fontFamily="DM Mono, monospace">
           {value}
         </text>
       )}

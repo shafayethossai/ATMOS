@@ -7,39 +7,52 @@ import { StatusBadge } from '../components/ui/StatusBadge'
 import { Navbar } from '../components/layout/Navbar'
 import { PageContainer } from '../components/layout/PageContainer'
 import { useStation } from '../context/StationContext'
-import { AQI_LEVELS, MODEL_INFO } from '../data/mockAQI'
+import { AQI_LEVELS, AQI_LEVELS_ORDERED, SYSTEM_INFO } from '../data/mockAQI'
 import { useAQIData } from '../hooks/useAQIData'
-import { getModelConfidence } from '../services/aqiCalc'
 
-const LEVELS = ['Good', 'Moderate', 'Poor', 'Hazardous']
-
+// PM2.5 and CO sparkline definitions
+// c = dot/bg color (EPA vivid), tc = readable text color via CSS var
 const CHART_DEFS = [
   {
     label: 'PM2.5 TREND', key: 'pm25', color: '#2563eb',
-    unit: 'μg/m³', max: 80, limit: 35.4, limitLabel: '35.4',
+    unit: 'μg/m³', max: 160, limit: 35.4, limitLabel: '35.4',
     zones: [
-      { l: 'Good', c: '#059669', r: '0–35' },
-      { l: 'Mod.',  c: '#d97706', r: '35–55' },
-      { l: 'Poor',  c: '#dc2626', r: '55+' },
+      { l: 'Good',     c: '#00E400', tc: 'var(--aqi-c-good)',      r: '0–12'    },
+      { l: 'Mod.',     c: '#FFFF00', tc: 'var(--aqi-c-moderate)',  r: '12–35'   },
+      { l: 'USG',      c: '#FF7E00', tc: 'var(--aqi-c-usg)',       r: '35–55'   },
+      { l: 'Unhlthy',  c: '#FF0000', tc: 'var(--aqi-c-unhealthy)', r: '55+'     },
     ],
   },
   {
     label: 'CO TREND', key: 'co', color: '#ea580c',
-    unit: 'ppm', max: 10, limit: 4, limitLabel: '4.0',
+    unit: 'ppm', max: 15, limit: 4.4, limitLabel: '4.4',
     zones: [
-      { l: 'Good', c: '#059669', r: '0–4' },
-      { l: 'Mod.',  c: '#d97706', r: '4–7' },
-      { l: 'Poor',  c: '#dc2626', r: '7+' },
+      { l: 'Good',     c: '#00E400', tc: 'var(--aqi-c-good)',      r: '0–4.4'   },
+      { l: 'Mod.',     c: '#FFFF00', tc: 'var(--aqi-c-moderate)',  r: '4.4–9.4' },
+      { l: 'USG',      c: '#FF7E00', tc: 'var(--aqi-c-usg)',       r: '9.4–12'  },
+      { l: 'Unhlthy',  c: '#FF0000', tc: 'var(--aqi-c-unhealthy)', r: '12+'     },
     ],
   },
 ]
 
+// AQI chart legend: color = dot/bg, textColor = readable text in both modes
+const AQI_LEGEND = [
+  { label: 'Good (0–50)',         color: '#00E400', textColor: 'var(--aqi-c-good)'      },
+  { label: 'Mod. (51–100)',       color: '#FFFF00', textColor: 'var(--aqi-c-moderate)'  },
+  { label: 'USG (101–150)',       color: '#FF7E00', textColor: 'var(--aqi-c-usg)'       },
+  { label: 'Unhlthy (151–200)',   color: '#FF0000', textColor: 'var(--aqi-c-unhealthy)' },
+  { label: 'V.Unhlthy (201–300)', color: '#8F3F97', textColor: 'var(--aqi-c-very)'      },
+  { label: 'Haz. (301+)',         color: '#7E0023', textColor: 'var(--aqi-c-hazardous)' },
+]
+
 export default function Dashboard() {
   const { activeStation } = useStation()
-  const { sensors, history, aqiValue, aqiLevel, primary, aboveSafe, isLoading, lastUpdated, refresh } = useAQIData()
+  const {
+    sensors, history, aqiValue, aqiLevel, criticalPollutant,
+    subIndices, aboveSafe, isLoading, lastUpdated, refresh,
+  } = useAQIData()
 
-  const cfg  = AQI_LEVELS[aqiLevel]
-  const conf = getModelConfidence(aqiLevel)
+  const cfg = AQI_LEVELS[aqiLevel]
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -50,10 +63,12 @@ export default function Dashboard() {
 
         {/* ── Stats bar ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, flexShrink: 0 }}>
-          <MetricCard label="STATION"     value={activeStation?.id ?? 'UITS-01'} sub={activeStation?.location ?? 'Dhaka-1212'} />
-          <MetricCard label="AQI INDEX"   value={aqiValue}   sub={`${aqiLevel} · ${cfg.range}`} accent={cfg.color} />
-          <MetricCard label="SENSORS"     value={`${sensors.filter(s => s.value > 0).length}`} sub={aboveSafe > 0 ? `${aboveSafe} above safe limit` : 'All within safe limits'} accent={aboveSafe > 0 ? '#dc2626' : undefined} />
-          <MetricCard label="MODEL ACC."  value={MODEL_INFO.accuracy} sub="RF + LSTM ensemble" />
+          <MetricCard label="STATION"      value={activeStation?.id ?? 'UITS-01'} sub={activeStation?.location ?? 'University Campus'} />
+          <MetricCard label="AQI INDEX"    value={aqiValue} sub={`${aqiLevel} · ${cfg.range}`} accent={cfg.textVar} />
+          <MetricCard label="SENSORS"      value={sensors.filter(s => !s.indoor && s.value > 0).length}
+            sub={aboveSafe > 0 ? `${aboveSafe} above safe limit` : 'All within safe limits'}
+            accent={aboveSafe > 0 ? 'var(--sensor-alert)' : undefined} />
+          <MetricCard label="DATA POINTS"  value="20" sub="Last 60 min · 3 min intervals" />
         </div>
 
         {/* ── Body: left main + right sidebar ── */}
@@ -67,7 +82,7 @@ export default function Dashboard() {
           {/* ── Left column ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0, overflow: 'hidden' }}>
 
-            {/* Sensor grid: 4 cols then 3 cols on last row via auto-fit */}
+            {/* Sensor grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, flexShrink: 0 }}>
               {sensors.map(s => <SensorCard key={s.name} sensor={s} />)}
             </div>
@@ -82,13 +97,11 @@ export default function Dashboard() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6, flexShrink: 0, flexWrap: 'wrap', gap: 6 }}>
                 <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.05em' }}>AQI TREND</span>
-                <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 8 }}>Last 60 min · 3-min intervals</span>
+                <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 6 }}>Last 60 min · EPA 6-tier scale</span>
                 <div style={{ marginLeft: 'auto', marginRight: 48, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                  <StatusBadge label="Good (0–50)"   color="#059669" />
-                  <StatusBadge label="Mod. (51–100)" color="#d97706" />
-                  <StatusBadge label="Poor (101–200)" color="#dc2626" />
+                  {AQI_LEGEND.slice(0, 4).map(l => <StatusBadge key={l.label} label={l.label} color={l.color} textColor={l.textColor} />)}
                   <span style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' }} />
-                  <StatusBadge label="Haz. (201+)"   color="#6b21a8" />
+                  {AQI_LEGEND.slice(4).map(l => <StatusBadge key={l.label} label={l.label} color={l.color} textColor={l.textColor} />)}
                 </div>
               </div>
               <div style={{ flex: 1, minHeight: 0 }}>
@@ -110,9 +123,9 @@ export default function Dashboard() {
                       {c.label}
                     </span>
                     <div style={{ marginLeft: 'auto', marginRight: 48, display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {c.zones.slice(0, 2).map(z => <StatusBadge key={z.l} label={`${z.l} (${z.r})`} color={z.c} />)}
+                      {c.zones.slice(0, 2).map(z => <StatusBadge key={z.l} label={`${z.l} (${z.r})`} color={z.c} textColor={z.tc} />)}
                       <span style={{ width: 1, height: 14, background: 'var(--border)' }} />
-                      <StatusBadge label={`${c.zones[2].l} (${c.zones[2].r})`} color={c.zones[2].c} />
+                      {c.zones.slice(2).map(z => <StatusBadge key={z.l} label={`${z.l} (${z.r})`} color={z.c} textColor={z.tc} />)}
                     </div>
                   </div>
                   <div style={{ flex: 1, minHeight: 0 }}>
@@ -125,54 +138,159 @@ export default function Dashboard() {
           </div>{/* end left column */}
 
           {/* ── Right sidebar ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0, overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minHeight: 0, overflowY: 'auto' }}>
 
-            {/* ML Prediction card */}
+            {/* ── Overall AQI Status card ── */}
             <div style={{
-              background: 'var(--surface)', border: `1px solid ${cfg.color}28`,
+              background: 'var(--surface)',
+              border: `1.5px solid ${cfg.color}45`,
               borderRadius: 14, overflow: 'hidden', flexShrink: 0,
               boxShadow: 'var(--shadow-card)',
             }}>
-              <div style={{ background: cfg.bg, padding: '14px 16px' }}>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: cfg.color, fontWeight: 600, letterSpacing: '0.08em', marginBottom: 2 }}>
-                  RF + LSTM · MULTI-POLLUTANT
-                </div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: cfg.color, lineHeight: 1.1 }}>
-                  {aqiLevel}
-                </div>
-                <div style={{ fontSize: 11, color: cfg.color, opacity: 0.85, marginTop: 4, lineHeight: 1.45 }}>{cfg.desc}</div>
+              {/* Colored header strip */}
+              <div style={{ background: cfg.color, padding: '7px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: cfg.badgeText, letterSpacing: '0.09em' }}>
+                  AIR QUALITY INDEX · REAL-TIME
+                </span>
+                <span style={{ fontSize: 8, fontFamily: 'var(--font-mono)', color: cfg.badgeText, opacity: 0.75 }}>
+                  EPA 6-TIER
+                </span>
               </div>
-              <div style={{ padding: '12px 16px', display: 'flex', gap: 24 }}>
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginBottom: 2 }}>CONFIDENCE</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-1)', fontVariantNumeric: 'tabular-nums' }}>{conf}%</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginBottom: 2 }}>PRIMARY</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-mono)', color: cfg.color }}>{primary?.name}</div>
-                </div>
-              </div>
-              <div style={{ padding: '0 16px 12px', display: 'flex', gap: 3 }}>
-                {LEVELS.map(l => (
-                  <div key={l} style={{ flex: 1 }}>
-                    <div style={{ height: 3, borderRadius: 2, background: l === aqiLevel ? AQI_LEVELS[l].color : 'var(--border)', transition: 'background 0.3s' }} />
+
+              {/* AQI value + category */}
+              <div style={{ padding: '14px 16px 10px', background: cfg.bg }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, marginBottom: 6 }}>
+                  <div>
+                    <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', marginBottom: 1, letterSpacing: '0.06em' }}>
+                      OVERALL AQI
+                    </div>
                     <div style={{
-                      fontSize: 8, fontFamily: 'var(--font-mono)',
-                      color: l === aqiLevel ? AQI_LEVELS[l].color : 'var(--text-3)',
-                      marginTop: 3, textAlign: 'center',
-                    }}>{l}</div>
+                      fontSize: 54, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                      color: cfg.textVar, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+                      letterSpacing: '-2px',
+                    }}>
+                      {aqiValue}
+                    </div>
                   </div>
-                ))}
+                  <div style={{ paddingBottom: 8 }}>
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                      background: cfg.color, color: cfg.badgeText,
+                      padding: '4px 12px', borderRadius: 20, letterSpacing: '0.04em',
+                    }}>
+                      {aqiLevel}
+                    </span>
+                    <div style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
+                      AQI {cfg.range}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Critical pollutant */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 10px', background: `${cfg.color}12`, borderRadius: 8,
+                  border: `1px solid ${cfg.color}30`, marginBottom: 8,
+                }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 10, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>
+                    Critical Pollutant:&nbsp;
+                    <span style={{ color: cfg.textVar, fontWeight: 700 }}>{criticalPollutant}</span>
+                    {subIndices && (
+                      <span style={{ color: 'var(--text-3)' }}>&nbsp;({subIndices[criticalPollutant]} sub-index)</span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Health advisory */}
+                <div style={{
+                  fontSize: 10, color: 'var(--text-2)', lineHeight: 1.55,
+                  padding: '8px 10px', background: 'var(--surface)', borderRadius: 8,
+                  border: '1px solid var(--border)',
+                }}>
+                  {cfg.advisory}
+                </div>
+              </div>
+
+              {/* 6-segment level indicator */}
+              <div style={{ padding: '10px 16px 12px', display: 'flex', gap: 3 }}>
+                {AQI_LEVELS_ORDERED.map(l => {
+                  const lc = AQI_LEVELS[l]
+                  const isActive = l === aqiLevel
+                  return (
+                    <div key={l} style={{ flex: 1 }}>
+                      <div style={{
+                        height: 4, borderRadius: 2,
+                        background: isActive ? lc.color : 'var(--border)',
+                        transition: 'background 0.4s',
+                      }} />
+                      <div style={{
+                        fontSize: 7, fontFamily: 'var(--font-mono)', lineHeight: 1.2, marginTop: 3,
+                        textAlign: 'center',
+                        color: isActive ? lc.textVar : 'var(--text-3)',
+                        fontWeight: isActive ? 700 : 400,
+                      }}>{lc.short}</div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
-            {/* Key Indicators: arc gauges for top 3 sensors */}
+            {/* ── Sub-Index Breakdown ── */}
+            {subIndices && (
+              <div style={{
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 14, padding: '12px 16px', flexShrink: 0,
+                boxShadow: 'var(--shadow-card)',
+              }}>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 10 }}>
+                  POLLUTANT SUB-INDICES
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {Object.entries(subIndices).map(([name, val]) => {
+                    const pct = Math.min(val / 300, 1) * 100
+                    const isCritical = name === criticalPollutant
+                    // bar fill uses vivid EPA colors (visual element), text uses CSS vars
+                    const barFill = isCritical ? cfg.color : (val <= 50 ? '#00E400' : val <= 100 ? '#FFFF00' : val <= 150 ? '#FF7E00' : '#FF0000')
+                    const barTextVar = isCritical ? cfg.textVar : (val <= 50 ? 'var(--aqi-c-good)' : val <= 100 ? 'var(--aqi-c-moderate)' : val <= 150 ? 'var(--aqi-c-usg)' : 'var(--aqi-c-unhealthy)')
+                    return (
+                      <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{
+                          fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: isCritical ? 700 : 500,
+                          color: isCritical ? cfg.textVar : 'var(--text-2)',
+                          minWidth: 36, flexShrink: 0,
+                        }}>{name}</span>
+                        <div style={{ flex: 1, height: 5, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{
+                            width: `${pct}%`, height: '100%',
+                            background: barFill, borderRadius: 3,
+                            transition: 'width 0.6s ease',
+                          }} />
+                        </div>
+                        <span style={{
+                          fontSize: 10, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums',
+                          color: barTextVar,
+                          fontWeight: isCritical ? 700 : 500,
+                          minWidth: 26, textAlign: 'right',
+                        }}>{val}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginTop: 8, lineHeight: 1.4 }}>
+                  Overall AQI = max of all sub-indices · CO₂ excluded (indoor metric)
+                </div>
+              </div>
+            )}
+
+            {/* ── Key Indicators: arc gauges ── */}
             <div style={{
               background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '14px 16px', flexShrink: 0,
+              borderRadius: 14, padding: '12px 16px', flexShrink: 0,
               boxShadow: 'var(--shadow-card)',
             }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 10 }}>
                 KEY INDICATORS
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
@@ -183,41 +301,42 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
                 <div style={{ width: 2, height: 8, background: 'var(--text-3)', borderRadius: 1 }} />
                 safe threshold marker
               </div>
             </div>
 
-            {/* Classification Scale */}
+            {/* ── Classification Scale ── */}
             <div style={{
               background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '14px 16px', flexShrink: 0,
+              borderRadius: 14, padding: '12px 16px', flexShrink: 0,
               boxShadow: 'var(--shadow-card)',
             }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 10 }}>
-                CLASSIFICATION SCALE
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 8 }}>
+                EPA CLASSIFICATION SCALE
               </div>
-              {LEVELS.map(level => {
+              {AQI_LEVELS_ORDERED.map(level => {
                 const c = AQI_LEVELS[level]
                 const isActive = level === aqiLevel
                 return (
                   <div key={level} style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 10px', borderRadius: 8,
-                    background: isActive ? c.bg : 'transparent', marginBottom: 3,
-                    transition: 'background 0.3s',
+                    padding: '6px 10px', borderRadius: 8,
+                    background: isActive ? c.bg : 'transparent',
+                    border: isActive ? `1px solid ${c.color}40` : '1px solid transparent',
+                    marginBottom: 3, transition: 'background 0.3s',
                   }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? c.color : 'var(--text-1)' }}>{level}</div>
+                      <div style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color: isActive ? c.textVar : 'var(--text-1)' }}>{level}</div>
                       <div style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>AQI {c.range}</div>
                     </div>
                     {isActive && (
                       <span style={{
-                        fontSize: 9, fontFamily: 'var(--font-mono)',
-                        background: c.color, color: '#fff',
-                        padding: '2px 8px', borderRadius: 10,
+                        fontSize: 8, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                        background: c.color, color: c.badgeText,
+                        padding: '2px 8px', borderRadius: 10, letterSpacing: '0.04em',
                       }}>CURRENT</span>
                     )}
                   </div>
@@ -225,21 +344,21 @@ export default function Dashboard() {
               })}
             </div>
 
-            {/* Model Info */}
+            {/* ── System Info ── */}
             <div style={{
               background: 'var(--surface-2)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '14px 16px', flexShrink: 0,
+              borderRadius: 14, padding: '12px 16px', flexShrink: 0,
               boxShadow: 'var(--shadow-card)',
             }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 10 }}>
-                MODEL INFO
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 8 }}>
+                SYSTEM INFO
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {[
-                  { k: 'Dataset:',  v: MODEL_INFO.dataset },
-                  { k: 'Models:',   v: MODEL_INFO.models },
-                  { k: 'Accuracy:', v: MODEL_INFO.accuracy },
-                  { k: 'Dept.:',    v: MODEL_INFO.dept },
+                  { k: 'Station:',  v: SYSTEM_INFO.station  },
+                  { k: 'Location:', v: SYSTEM_INFO.location  },
+                  { k: 'Dept.:',    v: SYSTEM_INFO.dept      },
+                  { k: 'Method:',   v: SYSTEM_INFO.method    },
                 ].map(r => (
                   <div key={r.k} style={{ display: 'flex', gap: 6, fontSize: 11 }}>
                     <span style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', minWidth: 64, flexShrink: 0 }}>{r.k}</span>

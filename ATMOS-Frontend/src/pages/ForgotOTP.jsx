@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { forgotSendOtp, forgotVerifyOtp } from '../api/authApi'
-import { AuthShell, BtnPrimary, Err, authCard } from '../components/ui/AuthShell'
+import { AuthShell, BtnPrimary, Err, LogoHeader, authCard } from '../components/ui/AuthShell'
 import { OTPInput, ResendRow, startResendTimer } from '../components/ui/OTPInput'
 
 export default function ForgotOTP() {
@@ -47,10 +47,11 @@ export default function ForgotOTP() {
   if (!email) return null
 
   return (
-    <AuthShell accentColor="#2563eb">
+    <AuthShell>
       <div style={authCard}>
+        <LogoHeader />
         <button onClick={() => navigate('/forgot-password')}
-          style={{ background: 'none', border: 'none', color: 'var(--text-2)', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 20 }}>
+          style={{ background: 'none', border: 'none', color: '#555', fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 20 }}>
           ← Back
         </button>
 

@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import bgImage from '../../assets/login-background.jpeg'
 import { AtmosLogo } from '../../assets/AtmosLogo'
 
 const GOOGLE_SVG = (
@@ -10,22 +12,33 @@ const GOOGLE_SVG = (
   </svg>
 )
 
+export function LogoHeader() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+      <AtmosLogo size={80} />
+      <div style={{ fontSize: 10, color: '#666', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
+        AIR QUALITY MONITORING SYSTEM
+      </div>
+    </div>
+  )
+}
+
 export function AuthTabs({ active }) {
   const tabs = [
     { key: 'login',  label: 'Sign in', to: '/login' },
     { key: 'signup', label: 'Sign up', to: '/signup' },
   ]
   return (
-    <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24 }}>
+    <div style={{ display: 'flex', background: 'rgba(0,0,0,0.06)', borderRadius: 10, padding: 4, marginBottom: 24 }}>
       {tabs.map(tab => (
         <Link key={tab.key} to={tab.to} style={{
           flex: 1, padding: '8px', borderRadius: 7,
           fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-sans)',
           textAlign: 'center', textDecoration: 'none',
           transition: 'all 0.2s',
-          background: active === tab.key ? 'var(--surface)' : 'transparent',
-          color:      active === tab.key ? 'var(--text-1)' : 'var(--text-3)',
-          boxShadow:  active === tab.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+          background: active === tab.key ? '#fff' : 'transparent',
+          color:      active === tab.key ? '#111' : '#777',
+          boxShadow:  active === tab.key ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
         }}>
           {tab.label}
         </Link>
@@ -38,14 +51,14 @@ export function GoogleBtn({ onClick }) {
   return (
     <button onClick={onClick} style={{
       width: '100%', padding: '11px', borderRadius: 8,
-      border: '1px solid var(--border)', background: 'var(--surface-2)',
-      color: 'var(--text-1)', fontSize: 14, fontWeight: 500,
+      border: '1px solid rgba(0,0,0,0.15)', background: 'rgba(255,255,255,0.7)',
+      color: '#111', fontSize: 14, fontWeight: 500,
       fontFamily: 'var(--font-sans)', cursor: 'pointer',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-      marginBottom: 20, transition: 'border-color 0.2s',
+      marginBottom: 20, transition: 'background 0.2s',
     }}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-strong)')}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.9)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.7)')}
     >
       {GOOGLE_SVG} Continue with Google
     </button>
@@ -55,9 +68,9 @@ export function GoogleBtn({ onClick }) {
 export function AuthDivider() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-      <span style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>OR</span>
-      <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+      <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.12)' }} />
+      <span style={{ fontSize: 11, color: '#888', fontFamily: 'var(--font-mono)' }}>OR</span>
+      <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.12)' }} />
     </div>
   )
 }
@@ -70,30 +83,44 @@ export function Err({ children, center }) {
   )
 }
 
-export function AuthShell({ children, accentColor = '#059669' }) {
+export function AuthShell({ children }) {
+  useEffect(() => {
+    const root = document.documentElement
+    const prev = root.getAttribute('data-theme')
+    root.setAttribute('data-theme', 'light')
+    return () => {
+      if (prev !== null) root.setAttribute('data-theme', prev)
+      else root.removeAttribute('data-theme')
+    }
+  }, [])
+
   return (
     <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: 24, fontFamily: 'var(--font-sans)',
-      position: 'relative', overflow: 'hidden',
+      minHeight: '100vh',
+      backgroundImage: `url(${bgImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      fontFamily: 'var(--font-sans)',
+      position: 'relative',
     }}>
-      {/* Radial glow */}
+      {/* Dark overlay */}
       <div style={{
-        position: 'fixed', top: '15%', left: '50%', transform: 'translateX(-50%)',
-        width: 640, height: 640, borderRadius: '50%',
-        background: `radial-gradient(circle, ${accentColor}0d 0%, transparent 70%)`,
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.45)',
         pointerEvents: 'none',
       }} />
 
       <div style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
-          <AtmosLogo size={44} />
-        </div>
         {children}
         <p style={{
-          textAlign: 'center', fontSize: 11, color: 'var(--text-3)',
+          textAlign: 'center', fontSize: 11,
+          color: 'rgba(255,255,255,0.55)',
           marginTop: 20, fontFamily: 'var(--font-mono)',
         }}>
           ATMOS · UITS Dhaka · CSE Capstone 2026
@@ -104,30 +131,37 @@ export function AuthShell({ children, accentColor = '#059669' }) {
 }
 
 export const authCard = {
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  borderRadius: 16,
-  padding: '32px',
-  boxShadow: '0 4px 28px rgba(0,0,0,0.09)',
+  background: 'rgba(255,255,255,0.84)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.65)',
+  borderRadius: 20,
+  padding: '36px 32px',
+  boxShadow: '0 8px 40px rgba(0,0,0,0.28)',
 }
 
 export function inputProps(accentColor = '#059669') {
   return {
     style: {
-      width: '100%', background: 'var(--surface-2)',
-      border: '1px solid var(--border)', borderRadius: 8,
-      padding: '11px 14px', color: 'var(--text-1)',
-      fontSize: 14, fontFamily: 'var(--font-sans)',
-      outline: 'none', boxSizing: 'border-box',
+      width: '100%',
+      background: 'rgba(255,255,255,0.65)',
+      border: '1px solid rgba(0,0,0,0.15)',
+      borderRadius: 8,
+      padding: '11px 14px',
+      color: '#111',
+      fontSize: 14,
+      fontFamily: 'var(--font-sans)',
+      outline: 'none',
+      boxSizing: 'border-box',
       transition: 'border-color 0.2s',
     },
     onFocus: e => (e.currentTarget.style.borderColor = accentColor),
-    onBlur:  e => (e.currentTarget.style.borderColor = 'var(--border)'),
+    onBlur:  e => (e.currentTarget.style.borderColor = 'rgba(0,0,0,0.15)'),
   }
 }
 
 export const labelStyle = {
-  fontSize: 11, color: 'var(--text-2)', display: 'block',
+  fontSize: 11, color: '#555', display: 'block',
   marginBottom: 6, fontFamily: 'var(--font-mono)',
   letterSpacing: '0.06em', fontWeight: 500,
 }
@@ -157,7 +191,7 @@ export function EyeToggle({ show, onToggle }) {
       style={{
         position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
         background: 'none', border: 'none', cursor: 'pointer',
-        color: 'var(--text-3)', fontSize: 13, padding: 0, lineHeight: 1,
+        color: '#888', fontSize: 13, padding: 0, lineHeight: 1,
       }}
     >
       {show ? '🙈' : '👁'}
@@ -169,12 +203,12 @@ export function PasswordStrength({ password }) {
   if (!password) return null
   const score = [/.{8,}/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter(r => r.test(password)).length
   const labels = ['', 'Weak', 'Fair', 'Good', 'Strong']
-  const colors = ['var(--border)', '#ef4444', '#eab308', '#22c55e', '#059669']
+  const colors = ['rgba(0,0,0,0.1)', '#ef4444', '#eab308', '#22c55e', '#059669']
   return (
     <div style={{ marginTop: 6 }}>
       <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
         {[1,2,3,4].map(i => (
-          <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= score ? colors[score] : 'var(--border)', transition: 'background 0.3s' }} />
+          <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= score ? colors[score] : 'rgba(0,0,0,0.1)', transition: 'background 0.3s' }} />
         ))}
       </div>
       <div style={{ fontSize: 11, color: colors[score], fontFamily: 'var(--font-mono)' }}>{labels[score]}</div>

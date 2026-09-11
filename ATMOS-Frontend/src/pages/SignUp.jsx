@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signupSendOtp } from '../api/authApi'
 import {
-  AuthShell, AuthTabs, GoogleBtn, AuthDivider, BtnPrimary, EyeToggle, Err,
+  AuthShell, AuthTabs, GoogleBtn, AuthDivider, BtnPrimary, EyeToggle, Err, LogoHeader,
   authCard, inputProps, labelStyle,
 } from '../components/ui/AuthShell'
 
@@ -38,24 +38,25 @@ export default function SignUp() {
   return (
     <AuthShell>
       <div style={authCard}>
+        <LogoHeader />
         <AuthTabs active="signup" />
         <GoogleBtn onClick={() => setTimeout(() => navigate('/dashboard'), 1200)} />
         <AuthDivider />
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={labelStyle}>FULL NAME</label>
-            <input type="text" placeholder="Shafayat Ullah" value={name}
+            <input type="text" placeholder="Your full name" value={name}
               onChange={e => { setName(e.target.value); setError('') }} required {...ip} />
           </div>
           <div>
             <label style={labelStyle}>EMAIL ADDRESS</label>
-            <input type="email" placeholder="you@example.com" value={email}
+            <input type="email" placeholder="Enter your email address" value={email}
               onChange={e => { setEmail(e.target.value); setError('') }} required {...ip} />
           </div>
           <div>
             <label style={labelStyle}>PASSWORD</label>
             <div style={{ position: 'relative' }}>
-              <input type={showPw ? 'text' : 'password'} placeholder="Min. 6 characters" value={password}
+              <input type={showPw ? 'text' : 'password'} placeholder="Create a password" value={password}
                 onChange={e => { setPassword(e.target.value); setError('') }} required
                 {...ip} style={{ ...ip.style, paddingRight: 42 }} />
               <EyeToggle show={showPw} onToggle={() => setShowPw(s => !s)} />
@@ -64,7 +65,7 @@ export default function SignUp() {
           <div>
             <label style={labelStyle}>CONFIRM PASSWORD</label>
             <div style={{ position: 'relative' }}>
-              <input type={showCf ? 'text' : 'password'} placeholder="Repeat password" value={confirm}
+              <input type={showCf ? 'text' : 'password'} placeholder="Confirm your password" value={confirm}
                 onChange={e => { setConfirm(e.target.value); setError('') }} required
                 {...ip} style={{ ...ip.style, paddingRight: 42 }} />
               <EyeToggle show={showCf} onToggle={() => setShowCf(s => !s)} />

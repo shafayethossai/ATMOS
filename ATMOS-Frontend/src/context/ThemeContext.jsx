@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 const ThemeContext = createContext(null)
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('atmos-theme') || 'system')
+  const [theme, setTheme] = useState(() => localStorage.getItem('atmos-theme') || 'light')
 
   useEffect(() => {
     const root = document.documentElement

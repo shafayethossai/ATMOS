@@ -99,7 +99,7 @@ export function Navbar({ isLoading, lastUpdated, onRefresh, station }) {
     return () => clearInterval(id)
   }, [])
 
-  const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark'
+  const nextTheme = theme === 'dark' ? 'light' : 'dark'
 
   return (
     <header style={{
@@ -109,11 +109,16 @@ export function Navbar({ isLoading, lastUpdated, onRefresh, station }) {
       flexShrink: 0, zIndex: 50,
     }}>
       {/* Left: logo + wordmark */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <AtmosLogo size={40} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <AtmosLogo size={62} />
         <div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1 }}>ATMOS</div>
-          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>Air Quality Monitor</div>
+          <div style={{
+            fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700,
+            color: 'var(--text-1)', lineHeight: 1, letterSpacing: '0.04em',
+          }}>ATMOS</div>
+          <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 3, letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
+            AIR QUALITY · MONITORING
+          </div>
         </div>
       </div>
 

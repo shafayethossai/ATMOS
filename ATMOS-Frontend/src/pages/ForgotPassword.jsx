@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { forgotSendOtp } from '../api/authApi'
-import { AuthShell, BtnPrimary, Err, authCard, inputProps, labelStyle } from '../components/ui/AuthShell'
+import { AuthShell, BtnPrimary, Err, LogoHeader, authCard, inputProps, labelStyle } from '../components/ui/AuthShell'
 
 export default function ForgotPassword() {
   const navigate = useNavigate()
@@ -25,8 +25,9 @@ export default function ForgotPassword() {
   }
 
   return (
-    <AuthShell accentColor="#2563eb">
+    <AuthShell>
       <div style={authCard}>
+        <LogoHeader />
         <div style={{ marginBottom: 24 }}>
           <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, marginBottom: 14 }}>
             🔑
@@ -40,7 +41,7 @@ export default function ForgotPassword() {
         <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={labelStyle}>EMAIL ADDRESS</label>
-            <input type="email" placeholder="you@example.com" value={email}
+            <input type="email" placeholder="Enter your email address" value={email}
               onChange={e => { setEmail(e.target.value); setError('') }} required {...ip} />
           </div>
           {error && <Err>{error}</Err>}

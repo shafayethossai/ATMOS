@@ -2,17 +2,17 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signIn } from '../api/authApi'
 import {
-  AuthShell, AuthTabs, GoogleBtn, AuthDivider, BtnPrimary, EyeToggle, Err,
+  AuthShell, AuthTabs, GoogleBtn, AuthDivider, BtnPrimary, EyeToggle, Err, LogoHeader,
   authCard, inputProps, labelStyle,
 } from '../components/ui/AuthShell'
 
 export default function Login() {
   const navigate = useNavigate()
-  const [email, setEmail]     = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [showPw, setShowPw]   = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [showPw, setShowPw]     = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
   const ip = inputProps()
 
   async function handleSubmit(e) {
@@ -33,19 +33,20 @@ export default function Login() {
   return (
     <AuthShell>
       <div style={authCard}>
+        <LogoHeader />
         <AuthTabs active="login" />
         <GoogleBtn onClick={() => setTimeout(() => navigate('/dashboard'), 1200)} />
         <AuthDivider />
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={labelStyle}>EMAIL ADDRESS</label>
-            <input type="email" placeholder="you@example.com" value={email}
+            <input type="email" placeholder="Enter your email address" value={email}
               onChange={e => { setEmail(e.target.value); setError('') }} required {...ip} />
           </div>
           <div>
             <label style={labelStyle}>PASSWORD</label>
             <div style={{ position: 'relative' }}>
-              <input type={showPw ? 'text' : 'password'} placeholder="Your password" value={password}
+              <input type={showPw ? 'text' : 'password'} placeholder="Enter your password" value={password}
                 onChange={e => { setPassword(e.target.value); setError('') }} required
                 {...ip} style={{ ...ip.style, paddingRight: 42 }} />
               <EyeToggle show={showPw} onToggle={() => setShowPw(s => !s)} />
@@ -53,7 +54,7 @@ export default function Login() {
           </div>
           {error && <Err>{error}</Err>}
           <BtnPrimary type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</BtnPrimary>
-          <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-3)' }}>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#666' }}>
             Forgot password?{' '}
             <Link to="/forgot-password" style={{ color: '#059669', textDecoration: 'none', fontWeight: 600 }}>Reset it</Link>
           </div>

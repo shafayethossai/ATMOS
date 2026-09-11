@@ -1,49 +1,120 @@
 import { SENSOR_DEFS } from '../data/mockAQI'
 
-export function aqiFromPM25(pm25) {
-  if (pm25 <= 12.0)  return Math.round((50 / 12.0) * pm25)
-  if (pm25 <= 35.4)  return Math.round(50  + (49 / 23.4) * (pm25 - 12.1))
-  if (pm25 <= 55.4)  return Math.round(100 + (49 / 19.9) * (pm25 - 35.5))
-  if (pm25 <= 150.4) return Math.round(150 + (49 / 94.9) * (pm25 - 55.5))
-  if (pm25 <= 250.4) return Math.round(200 + (99 / 99.9) * (pm25 - 150.5))
-  return Math.round(300 + (99 / 149.9) * (pm25 - 250.5))
+// EPA breakpoint tables (Table 5)
+const BREAKPOINTS = {
+  pm25: [
+    { cLo: 0.0,   cHi: 12.0,  iLo: 0,   iHi: 50  },
+    { cLo: 12.1,  cHi: 35.4,  iLo: 51,  iHi: 100 },
+    { cLo: 35.5,  cHi: 55.4,  iLo: 101, iHi: 150 },
+    { cLo: 55.5,  cHi: 150.4, iLo: 151, iHi: 200 },
+    { cLo: 150.5, cHi: 250.4, iLo: 201, iHi: 300 },
+    { cLo: 250.5, cHi: 500.4, iLo: 301, iHi: 500 },
+  ],
+  pm10: [
+    { cLo: 0,   cHi: 54,  iLo: 0,   iHi: 50  },
+    { cLo: 55,  cHi: 154, iLo: 51,  iHi: 100 },
+    { cLo: 155, cHi: 254, iLo: 101, iHi: 150 },
+    { cLo: 255, cHi: 354, iLo: 151, iHi: 200 },
+    { cLo: 355, cHi: 424, iLo: 201, iHi: 300 },
+    { cLo: 425, cHi: 604, iLo: 301, iHi: 500 },
+  ],
+  co: [
+    { cLo: 0.0,  cHi: 4.4,  iLo: 0,   iHi: 50  },
+    { cLo: 4.5,  cHi: 9.4,  iLo: 51,  iHi: 100 },
+    { cLo: 9.5,  cHi: 12.4, iLo: 101, iHi: 150 },
+    { cLo: 12.5, cHi: 15.4, iLo: 151, iHi: 200 },
+    { cLo: 15.5, cHi: 30.4, iLo: 201, iHi: 300 },
+    { cLo: 30.5, cHi: 50.4, iLo: 301, iHi: 500 },
+  ],
+  no2: [
+    { cLo: 0,    cHi: 53,   iLo: 0,   iHi: 50  },
+    { cLo: 54,   cHi: 100,  iLo: 51,  iHi: 100 },
+    { cLo: 101,  cHi: 360,  iLo: 101, iHi: 150 },
+    { cLo: 361,  cHi: 649,  iLo: 151, iHi: 200 },
+    { cLo: 650,  cHi: 1249, iLo: 201, iHi: 300 },
+    { cLo: 1250, cHi: 2049, iLo: 301, iHi: 500 },
+  ],
+  so2: [
+    { cLo: 0,   cHi: 35,  iLo: 0,   iHi: 50  },
+    { cLo: 36,  cHi: 75,  iLo: 51,  iHi: 100 },
+    { cLo: 76,  cHi: 185, iLo: 101, iHi: 150 },
+    { cLo: 186, cHi: 304, iLo: 151, iHi: 200 },
+    { cLo: 305, cHi: 604, iLo: 201, iHi: 300 },
+    { cLo: 605, cHi: 1004,iLo: 301, iHi: 500 },
+  ],
+  // O3 input must be in ppm (8-hour avg), truncated to 3 decimal places
+  o3: [
+    { cLo: 0.000, cHi: 0.054, iLo: 0,   iHi: 50  },
+    { cLo: 0.055, cHi: 0.070, iLo: 51,  iHi: 100 },
+    { cLo: 0.071, cHi: 0.085, iLo: 101, iHi: 150 },
+    { cLo: 0.086, cHi: 0.105, iLo: 151, iHi: 200 },
+    { cLo: 0.106, cHi: 0.200, iLo: 201, iHi: 300 },
+  ],
 }
 
-export function classifyAQI(aqiValue) {
-  if (aqiValue <= 50)  return 'Good'
-  if (aqiValue <= 100) return 'Moderate'
-  if (aqiValue <= 200) return 'Poor'
+// EPA requires truncation (not rounding) before interpolation
+function trunc(val, decimals) {
+  const f = Math.pow(10, decimals)
+  return Math.floor(val * f) / f
+}
+
+function interpolate(cp, bps) {
+  const bp = bps.find(b => cp >= b.cLo && cp <= b.cHi)
+  if (!bp) return cp > (bps[bps.length - 1]?.cHi ?? 0) ? 500 : 0
+  return Math.round(((bp.iHi - bp.iLo) / (bp.cHi - bp.cLo)) * (cp - bp.cLo) + bp.iLo)
+}
+
+export function computeSubIndices(sensors) {
+  const get = name => sensors.find(s => s.name === name)?.value ?? 0
+  return {
+    'PM2.5': interpolate(trunc(get('PM2.5'), 1),          BREAKPOINTS.pm25),
+    'PM10':  interpolate(trunc(get('PM10'), 0),           BREAKPOINTS.pm10),
+    'CO':    interpolate(trunc(get('CO'), 1),             BREAKPOINTS.co),
+    'NO₂':  interpolate(trunc(get('NO₂'), 0),            BREAKPOINTS.no2),
+    'SO₂':  interpolate(trunc(get('SO₂'), 0),            BREAKPOINTS.so2),
+    'O₃':   interpolate(trunc(get('O₃') / 1000, 3),      BREAKPOINTS.o3),
+  }
+}
+
+// Overall AQI is the MAX of all criteria pollutant sub-indices
+export function computeAQI(sensors) {
+  const subIndices = computeSubIndices(sensors)
+  const [criticalPollutant, aqiValue] = Object.entries(subIndices)
+    .reduce((best, cur) => cur[1] > best[1] ? cur : best, ['', 0])
+  return { aqiValue, aqiLevel: classifyAQI(aqiValue), criticalPollutant, subIndices }
+}
+
+export function classifyAQI(v) {
+  if (v <= 50)  return 'Good'
+  if (v <= 100) return 'Moderate'
+  if (v <= 150) return 'Sensitive Groups'
+  if (v <= 200) return 'Unhealthy'
+  if (v <= 300) return 'Very Unhealthy'
   return 'Hazardous'
 }
 
-export function aqiZoneColor(aqi) {
-  if (aqi <= 50)  return '#059669'
-  if (aqi <= 100) return '#d97706'
-  if (aqi <= 200) return '#dc2626'
-  return '#6b21a8'
+export function aqiZoneColor(v) {
+  if (v <= 50)  return '#00E400'
+  if (v <= 100) return '#C8C800'
+  if (v <= 150) return '#FF7E00'
+  if (v <= 200) return '#FF0000'
+  if (v <= 300) return '#8F3F97'
+  return '#7E0023'
 }
 
 export function generateSensors() {
   return SENSOR_DEFS.map(def => ({
     ...def,
     value: def.name === 'CO₂'
-      ? +(Math.random() * 400 + 400).toFixed(0)
+      ? +(Math.random() * 500 + 350).toFixed(0)
       : def.name === 'CO'
-      ? +(Math.random() * 6 + 0.1).toFixed(2)
-      : +(Math.random() * (def.safe * 1.6) + def.safe * 0.15).toFixed(1),
+      ? +(Math.random() * 8 + 0.1).toFixed(2)
+      : +(Math.random() * (def.safe * 1.8) + def.safe * 0.1).toFixed(1),
   }))
 }
 
 export function getSensorBarColor(sensor) {
-  const pct = sensor.value / sensor.max
+  if (sensor.indoor) return sensor.color
   if (sensor.value <= sensor.safe) return sensor.color
-  return pct > 0.85 ? '#dc2626' : '#ea580c'
-}
-
-export function getModelConfidence(level) {
-  return { Good: 94, Moderate: 87, Poor: 91, Hazardous: 96 }[level] ?? 88
-}
-
-export function getPrimaryPollutant(sensors) {
-  return [...sensors].sort((a, b) => b.value / b.safe - a.value / a.safe)[0]
+  return (sensor.value / sensor.max) > 0.75 ? '#FF0000' : '#FF7E00'
 }

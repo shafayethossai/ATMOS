@@ -37,6 +37,18 @@
   --text-3:        #94a3b8;
   --shadow-card:   0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
   --shadow-hover:  0 4px 16px rgba(0,0,0,0.09);
+
+  /* AQI text colors — dark enough for light backgrounds (WCAG AA) */
+  --aqi-c-good:       #007700;
+  --aqi-c-moderate:   #7A7800;
+  --aqi-c-usg:        #A85000;
+  --aqi-c-unhealthy:  #B80000;
+  --aqi-c-very:       #6B2A74;
+  --aqi-c-hazardous:  #6A001E;
+
+  /* Sensor alert text colors */
+  --sensor-alert:     #B80000;
+  --sensor-warn:      #A85000;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -51,6 +63,15 @@
     --text-3:        #4a5568;
     --shadow-card:   0 1px 3px rgba(0,0,0,0.4);
     --shadow-hover:  0 4px 20px rgba(0,0,0,0.5);
+    /* EPA vivid colors — high contrast on near-black surface */
+    --aqi-c-good:       #00E400;
+    --aqi-c-moderate:   #FFFF00;
+    --aqi-c-usg:        #FF7E00;
+    --aqi-c-unhealthy:  #FF4444;
+    --aqi-c-very:       #A855C8;
+    --aqi-c-hazardous:  #E0305A;
+    --sensor-alert:     #FF4444;
+    --sensor-warn:      #FF7E00;
   }
 }
 
@@ -65,6 +86,14 @@
   --text-3:        #4a5568;
   --shadow-card:   0 1px 3px rgba(0,0,0,0.4);
   --shadow-hover:  0 4px 20px rgba(0,0,0,0.5);
+  --aqi-c-good:       #00E400;
+  --aqi-c-moderate:   #FFFF00;
+  --aqi-c-usg:        #FF7E00;
+  --aqi-c-unhealthy:  #FF4444;
+  --aqi-c-very:       #A855C8;
+  --aqi-c-hazardous:  #E0305A;
+  --sensor-alert:     #FF4444;
+  --sensor-warn:      #FF7E00;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -95,3 +124,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pulse-dot, .spin, .slide-in, .fade-in { animation: none; }
 }
+
+/* Logo blend: remove white background in light mode, show normally in dark */
+.atmos-logo { mix-blend-mode: multiply; }
+:root[data-theme="dark"] .atmos-logo { mix-blend-mode: normal; }
