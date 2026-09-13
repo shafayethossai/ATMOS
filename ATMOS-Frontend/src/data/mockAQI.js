@@ -5,15 +5,20 @@ export const STATIONS = [
   { id: 'MOT-04',  name: 'Motijheel',   location: 'Dhaka-1000', lat: 23.7337, lng: 90.4181, active: true },
 ]
 
-// CO₂ flagged as indoor metric — excluded from EPA AQI calculation
+// Before purification: 5 sensors from IoT hardware.
+// CO₂ is a ventilation/indoor metric — displayed but excluded from EPA AQI calculation.
 export const SENSOR_DEFS = [
   { name: 'PM2.5', unit: 'μg/m³', max: 200,  safe: 35.4, color: '#2563eb', description: 'Particle pollution (PM₂.₅)' },
   { name: 'PM10',  unit: 'μg/m³', max: 300,  safe: 54,   color: '#7c3aed', description: 'Coarse particulate matter' },
   { name: 'CO',    unit: 'ppm',   max: 15,   safe: 4.4,  color: '#ea580c', description: 'Carbon monoxide' },
   { name: 'NO₂',  unit: 'ppb',   max: 200,  safe: 53,   color: '#db2777', description: 'Nitrogen dioxide' },
-  { name: 'SO₂',  unit: 'ppb',   max: 305,  safe: 35,   color: '#d97706', description: 'Sulfur dioxide' },
-  { name: 'O₃',   unit: 'ppb',   max: 200,  safe: 54,   color: '#059669', description: 'Ozone (8-hour avg)' },
   { name: 'CO₂',  unit: 'ppm',   max: 2000, safe: 1000, color: '#0891b2', description: 'Carbon dioxide', indoor: true },
+]
+
+// After purification: only PM2.5 and PM10 are re-measured post-filter.
+export const SENSOR_DEFS_AFTER = [
+  { name: 'PM2.5', unit: 'μg/m³', max: 200, safe: 35.4, color: '#2563eb', description: 'PM₂.₅ after purification' },
+  { name: 'PM10',  unit: 'μg/m³', max: 300, safe: 54,   color: '#7c3aed', description: 'PM₁₀ after purification' },
 ]
 
 // Official US EPA 6-tier AQI standard (Table 1 & Table 2)

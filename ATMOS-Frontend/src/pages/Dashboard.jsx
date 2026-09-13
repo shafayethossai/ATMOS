@@ -48,7 +48,7 @@ const AQI_LEGEND = [
 export default function Dashboard() {
   const { activeStation } = useStation()
   const {
-    sensors, history, aqiValue, aqiLevel, criticalPollutant,
+    sensors, sensorsAfter, history, aqiValue, aqiLevel, criticalPollutant,
     subIndices, aboveSafe, isLoading, lastUpdated, refresh,
   } = useAQIData()
 
@@ -61,30 +61,148 @@ export default function Dashboard() {
 
       <PageContainer>
 
-        {/* ── Stats bar ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, flexShrink: 0 }}>
-          <MetricCard label="STATION"      value={activeStation?.id ?? 'UITS-01'} sub={activeStation?.location ?? 'University Campus'} />
-          <MetricCard label="AQI INDEX"    value={aqiValue} sub={`${aqiLevel} · ${cfg.range}`} accent={cfg.textVar} />
-          <MetricCard label="SENSORS"      value={sensors.filter(s => !s.indoor && s.value > 0).length}
-            sub={aboveSafe > 0 ? `${aboveSafe} above safe limit` : 'All within safe limits'}
-            accent={aboveSafe > 0 ? 'var(--sensor-alert)' : undefined} />
-          <MetricCard label="DATA POINTS"  value="20" sub="Last 60 min · 3 min intervals" />
-        </div>
-
-        {/* ── Body: left main + right sidebar ── */}
+        {/* ── Main grid: left area (stats + charts) + right sidebar ── */}
         <div style={{
           flex: 1, display: 'grid',
           gridTemplateColumns: 'minmax(0,1fr) 360px',
-          columnGap: 20, rowGap: 16,
+          columnGap: 20,
           overflow: 'hidden', minHeight: 0,
         }}>
 
-          {/* ── Left column ── */}
+          {/* ── Left column: stats bar + charts stacked ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0, overflow: 'hidden' }}>
 
-            {/* Sensor grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12, flexShrink: 0 }}>
-              {sensors.map(s => <SensorCard key={s.name} sensor={s} />)}
+            {/* ── Stats bar (3 cards, 4th slot intentionally empty) ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, flexShrink: 0 }}>
+              <MetricCard label="AQI INDEX"    value={aqiValue} sub={`${aqiLevel} · ${cfg.range}`} accent={cfg.textVar} />
+              <MetricCard label="SENSORS"      value={sensors.filter(s => !s.indoor && s.value > 0).length}
+                sub={aboveSafe > 0 ? `${aboveSafe} above safe limit` : 'All within safe limits'}
+                accent={aboveSafe > 0 ? 'var(--sensor-alert)' : undefined} />
+              <MetricCard label="DATA POINTS"  value="20" sub="Last 60 min · 3 min intervals" />
+            </div>
+
+            {/* ── Before Purification ── */}
+            <div style={{ flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.06em' }}>
+                  BEFORE PURIFICATION
+                </span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <span style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>5 sensors · IoT raw readings</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 10 }}>
+                {sensors.map(s => <SensorCard key={s.name} sensor={s} />)}
+              </div>
+            </div>
+
+            {/* ── After Purification ── */}
+            <div style={{ flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#22c55e', letterSpacing: '0.06em' }}>
+                  AFTER PURIFICATION
+                </span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <span style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>PM₂.₅ &amp; PM₁₀ post-filter</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {sensorsAfter.map(sAfter => {
+                  const sBefore   = sensors.find(s => s.name === sAfter.name)
+                  const reduction = sBefore && sBefore.value > 0
+                    ? Math.round((1 - sAfter.value / sBefore.value) * 100)
+                    : 0
+                  const beforePct = sBefore ? Math.min(sBefore.value / sAfter.max * 100, 100) : 0
+                  const afterPct  = Math.min(sAfter.value / sAfter.max * 100, 100)
+                  const safePct   = Math.min(sAfter.safe / sAfter.max * 100, 100)
+                  const isGood    = sAfter.value <= sAfter.safe
+                  return (
+                    <div key={sAfter.name} style={{
+                      background: 'var(--surface)',
+                      border: `1px solid ${isGood ? 'rgba(34,197,94,0.35)' : 'var(--border)'}`,
+                      borderRadius: 14, padding: '10px 12px',
+                      display: 'flex', flexDirection: 'column', gap: 6,
+                      boxShadow: 'var(--shadow-card)',
+                    }}>
+                      {/* Header: sensor name + unit */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.04em' }}>
+                          {sAfter.name}
+                        </span>
+                        <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>{sAfter.unit}</span>
+                      </div>
+
+                      {/* Main row: before → after values + reduction % */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {/* Before value */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                          <span style={{ fontSize: 8, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', letterSpacing: '0.06em' }}>BEFORE</span>
+                          <span style={{
+                            fontSize: 17, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+                            color: sBefore?.value > sBefore?.safe ? 'var(--sensor-alert)' : 'var(--text-2)',
+                          }}>{sBefore?.value ?? '—'}</span>
+                        </div>
+
+                        {/* Arrow */}
+                        <span style={{ fontSize: 12, color: 'var(--text-3)', flexShrink: 0 }}>→</span>
+
+                        {/* After value */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                          <span style={{ fontSize: 8, fontFamily: 'var(--font-mono)', color: '#22c55e', letterSpacing: '0.06em' }}>AFTER</span>
+                          <span style={{
+                            fontSize: 17, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+                            color: isGood ? '#22c55e' : 'var(--sensor-alert)',
+                          }}>{sAfter.value}</span>
+                        </div>
+
+                        {/* Reduction % hero */}
+                        <div style={{
+                          marginLeft: 'auto',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center',
+                          background: 'rgba(34,197,94,0.10)', borderRadius: 10,
+                          padding: '3px 10px', border: '1px solid rgba(34,197,94,0.25)',
+                        }}>
+                          <span style={{
+                            fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+                            color: '#22c55e',
+                          }}>↓{reduction}%</span>
+                          <span style={{ fontSize: 7, fontFamily: 'var(--font-mono)', color: '#22c55e', opacity: 0.8, marginTop: 2, letterSpacing: '0.04em' }}>
+                            {isGood ? 'PURIFIED' : 'REDUCED'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Comparison bar */}
+                      <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, position: 'relative' }}>
+                        <div style={{
+                          position: 'absolute', left: 0, top: 0, height: '100%',
+                          width: `${beforePct}%`,
+                          background: sBefore?.value > sBefore?.safe ? 'rgba(255,126,0,0.30)' : `${sAfter.color}30`,
+                          borderRadius: 2,
+                        }} />
+                        <div style={{
+                          position: 'absolute', left: 0, top: 0, height: '100%',
+                          width: `${afterPct}%`,
+                          background: '#22c55e', borderRadius: 2,
+                          transition: 'width 0.6s ease',
+                        }} />
+                        <div style={{
+                          position: 'absolute', left: `${safePct}%`, top: -3,
+                          width: 2, height: 10, background: 'var(--text-3)', borderRadius: 1,
+                        }} />
+                      </div>
+
+                      {/* Bar labels */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>
+                        <span>0</span>
+                        <span>safe: {sAfter.safe}</span>
+                        <span>max: {sAfter.max}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             {/* AQI trend */}
@@ -137,7 +255,7 @@ export default function Dashboard() {
 
           </div>{/* end left column */}
 
-          {/* ── Right sidebar ── */}
+          {/* ── Right sidebar — starts at same level as stats bar ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minHeight: 0, overflowY: 'auto' }}>
 
             {/* ── Overall AQI Status card ── */}
@@ -279,7 +397,7 @@ export default function Dashboard() {
                   })}
                 </div>
                 <div style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginTop: 8, lineHeight: 1.4 }}>
-                  Overall AQI = max of all sub-indices · CO₂ excluded (indoor metric)
+                  Overall AQI = MAX(PM₂.₅, PM₁₀, CO, NO₂) · CO₂ excluded (ventilation metric)
                 </div>
               </div>
             )}
@@ -370,7 +488,7 @@ export default function Dashboard() {
 
           </div>{/* end right sidebar */}
 
-        </div>{/* end body grid */}
+        </div>{/* end main grid */}
 
       </PageContainer>
     </div>

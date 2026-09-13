@@ -15,7 +15,7 @@ const GOOGLE_SVG = (
 export function LogoHeader() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-      <AtmosLogo size={80} />
+      <AtmosLogo size={120} />
       <div style={{ fontSize: 10, color: '#666', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
         AIR QUALITY MONITORING SYSTEM
       </div>
@@ -194,7 +194,7 @@ export function EyeToggle({ show, onToggle }) {
         color: '#888', fontSize: 13, padding: 0, lineHeight: 1,
       }}
     >
-      {show ? '🙈' : '👁'}
+      {show ? '👀' : '👁'}
     </button>
   )
 }

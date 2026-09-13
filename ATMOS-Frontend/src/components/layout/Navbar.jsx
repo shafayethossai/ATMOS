@@ -93,6 +93,7 @@ function UserMenu() {
 
 export function Navbar({ isLoading, lastUpdated, onRefresh, station }) {
   const { theme, setTheme } = useTheme()
+  const navigate = useNavigate()
   const [, tick] = useState(0)
   useEffect(() => {
     const id = setInterval(() => tick(n => n + 1), 1000)
@@ -109,15 +110,22 @@ export function Navbar({ isLoading, lastUpdated, onRefresh, station }) {
       flexShrink: 0, zIndex: 50,
     }}>
       {/* Left: logo + wordmark */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <AtmosLogo size={62} />
+      <div
+        onClick={() => navigate('/dashboard')}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+      >
+        <AtmosLogo size={80} />
         <div>
           <div style={{
-            fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700,
-            color: 'var(--text-1)', lineHeight: 1, letterSpacing: '0.04em',
+            fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700,
+            color: 'var(--text-1)', lineHeight: 1, letterSpacing: '0.05em',
           }}>ATMOS</div>
-          <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 3, letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
-            AIR QUALITY · MONITORING
+          <div style={{
+            fontSize: 8.5, color: 'var(--text-3)', marginTop: 3,
+            letterSpacing: '0.08em', fontFamily: 'var(--font-mono)',
+            textTransform: 'uppercase',
+          }}>
+            Air Quality Monitoring
           </div>
         </div>
       </div>

@@ -88,11 +88,14 @@ export default function Profile() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <AtmosLogo size={62} />
+        <div
+          onClick={() => navigate('/dashboard')}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+        >
+          <AtmosLogo size={80} />
           <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1, letterSpacing: '0.04em' }}>ATMOS</div>
-            <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 3, letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>AIR QUALITY · MONITORING</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1, letterSpacing: '0.05em' }}>ATMOS</div>
+            <div style={{ fontSize: 8.5, color: 'var(--text-3)', marginTop: 3, letterSpacing: '0.08em', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Air Quality Monitoring</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

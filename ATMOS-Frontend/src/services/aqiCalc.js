@@ -1,6 +1,7 @@
-import { SENSOR_DEFS } from '../data/mockAQI'
+import { SENSOR_DEFS, SENSOR_DEFS_AFTER } from '../data/mockAQI'
 
-// EPA breakpoint tables (Table 5)
+// EPA breakpoint tables — only for pollutants the IoT hardware measures that affect AQI.
+// CO₂ is NOT in AQI (ventilation metric). SO₂ and O₃ are not measured by this hardware.
 const BREAKPOINTS = {
   pm25: [
     { cLo: 0.0,   cHi: 12.0,  iLo: 0,   iHi: 50  },
@@ -34,22 +35,6 @@ const BREAKPOINTS = {
     { cLo: 650,  cHi: 1249, iLo: 201, iHi: 300 },
     { cLo: 1250, cHi: 2049, iLo: 301, iHi: 500 },
   ],
-  so2: [
-    { cLo: 0,   cHi: 35,  iLo: 0,   iHi: 50  },
-    { cLo: 36,  cHi: 75,  iLo: 51,  iHi: 100 },
-    { cLo: 76,  cHi: 185, iLo: 101, iHi: 150 },
-    { cLo: 186, cHi: 304, iLo: 151, iHi: 200 },
-    { cLo: 305, cHi: 604, iLo: 201, iHi: 300 },
-    { cLo: 605, cHi: 1004,iLo: 301, iHi: 500 },
-  ],
-  // O3 input must be in ppm (8-hour avg), truncated to 3 decimal places
-  o3: [
-    { cLo: 0.000, cHi: 0.054, iLo: 0,   iHi: 50  },
-    { cLo: 0.055, cHi: 0.070, iLo: 51,  iHi: 100 },
-    { cLo: 0.071, cHi: 0.085, iLo: 101, iHi: 150 },
-    { cLo: 0.086, cHi: 0.105, iLo: 151, iHi: 200 },
-    { cLo: 0.106, cHi: 0.200, iLo: 201, iHi: 300 },
-  ],
 }
 
 // EPA requires truncation (not rounding) before interpolation
@@ -64,15 +49,15 @@ function interpolate(cp, bps) {
   return Math.round(((bp.iHi - bp.iLo) / (bp.cHi - bp.cLo)) * (cp - bp.cLo) + bp.iLo)
 }
 
+// AQI sub-indices for the 4 pollutants measured by this hardware that have EPA AQI standards.
+// CO₂ is intentionally excluded — it is a ventilation metric, not an EPA AQI pollutant.
 export function computeSubIndices(sensors) {
   const get = name => sensors.find(s => s.name === name)?.value ?? 0
   return {
-    'PM2.5': interpolate(trunc(get('PM2.5'), 1),          BREAKPOINTS.pm25),
-    'PM10':  interpolate(trunc(get('PM10'), 0),           BREAKPOINTS.pm10),
-    'CO':    interpolate(trunc(get('CO'), 1),             BREAKPOINTS.co),
-    'NO₂':  interpolate(trunc(get('NO₂'), 0),            BREAKPOINTS.no2),
-    'SO₂':  interpolate(trunc(get('SO₂'), 0),            BREAKPOINTS.so2),
-    'O₃':   interpolate(trunc(get('O₃') / 1000, 3),      BREAKPOINTS.o3),
+    'PM2.5': interpolate(trunc(get('PM2.5'), 1), BREAKPOINTS.pm25),
+    'PM10':  interpolate(trunc(get('PM10'), 0),  BREAKPOINTS.pm10),
+    'CO':    interpolate(trunc(get('CO'), 1),    BREAKPOINTS.co),
+    'NO₂':  interpolate(trunc(get('NO₂'), 0),   BREAKPOINTS.no2),
   }
 }
 
@@ -117,4 +102,15 @@ export function getSensorBarColor(sensor) {
   if (sensor.indoor) return sensor.color
   if (sensor.value <= sensor.safe) return sensor.color
   return (sensor.value / sensor.max) > 0.75 ? '#FF0000' : '#FF7E00'
+}
+
+// Simulate after-purification readings for PM2.5 and PM10.
+// Purification reduces particulate matter by 40–70%.
+// Replace this with real hardware data when the post-filter sensor is ready.
+export function generateAfterPurification(beforeSensors) {
+  const reduction = 0.40 + Math.random() * 0.30  // 40–70% reduction
+  return SENSOR_DEFS_AFTER.map(def => {
+    const before = beforeSensors.find(s => s.name === def.name)?.value ?? 0
+    return { ...def, value: +(before * (1 - reduction)).toFixed(1) }
+  })
 }
