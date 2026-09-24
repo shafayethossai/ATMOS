@@ -127,7 +127,7 @@ Components are building blocks. Pages are built by combining components together
 |---|---|
 | `ui/AuthShell.jsx` | The shared wrapper for all auth pages (login, signup, forgot password etc.). Contains: the background image, the white card in the centre, the ATMOS logo at the top, and shared small components like `BtnPrimary` (the blue button), `Err` (red error text), `EyeToggle` (show/hide password), `PasswordStrength` (the strength bar), `inputProps` (shared input styling). All auth pages import from here — nothing is duplicated. |
 | `ui/OTPInput.jsx` | The 6-box OTP code input used on the signup verify and forgot password verify pages. Handles: typing moves to next box automatically, backspace goes back, paste fills all boxes at once. Also contains the 30-second countdown timer and "Resend code" button. |
-| `ui/SensorCard.jsx` | One sensor reading card (e.g. PM2.5 card). Shows: sensor name, current value, unit, a colour bar showing how high the value is, a safe-limit marker, and a label saying "ABOVE SAFE" or "WITHIN SAFE". Used 5 times in a row on the dashboard for the before-purification sensors. |
+| `ui/SensorCard.jsx` | One sensor reading card (e.g. PM2.5 card). Shows: sensor name, current value, unit, a colour bar showing how high the value is, a safe-limit marker, and a label saying "ABOVE SAFE" or "WITHIN SAFE". Indoor sensors show "INDOOR" badge and "VENTILATION METRIC" label instead. Used 5 times for before-purification sensors (PM2.5, PM10, CO, O₃, NO₂) and 1 time for the CO₂ indoor card in the after-purification row. |
 | `ui/MetricCard.jsx` | A top stat tile. Shows a large number with a label and a small subtitle below. Used for the 3 cards at the top of the dashboard: AQI INDEX, SENSORS, DATA POINTS. |
 | `ui/StatusBadge.jsx` | A small coloured pill/chip label. Used in the chart legends (Good, Moderate, USG, Unhealthy labels). |
 | `ui/AQIChart.jsx` | The AQI trend line chart (the big chart in the dashboard). Drawn with inline SVG — no chart library. Shows the AQI value over the last 60 minutes with colour-coded background zones (green = good, yellow = moderate, orange = USG, red = unhealthy). |
@@ -151,7 +151,7 @@ Context files store data that needs to be available in every component without p
 
 | File | What it does |
 |---|---|
-| `data/mockAQI.js` | All the fake data used while the real hardware is not connected. Contains: the 4 station locations, the 5 sensor definitions (name, unit, colour, safe limit), the 2 after-purification sensor definitions, the 6 EPA AQI level colours and descriptions (Good, Moderate, etc.), the AQI colour zones for charts, and 20 pre-loaded history data points for the trend chart. |
+| `data/mockAQI.js` | All the fake data used while the real hardware is not connected. Contains: the 4 station locations, the 6 sensor definitions — PM2.5, PM10, CO, O₃, NO₂ (before purification) + CO₂ (indoor/ventilation, `indoor: true`), the 2 after-purification sensor definitions (PM2.5 and PM10 post-filter), the 6 EPA AQI level colours and descriptions (Good, Moderate, etc.), the AQI colour zones for charts, and 20 pre-loaded history data points for the trend chart. |
 
 ---
 
@@ -167,7 +167,7 @@ Context files store data that needs to be available in every component without p
 
 | File | What it does |
 |---|---|
-| `services/aqiCalc.js` | All the AQI maths. Contains the EPA breakpoint tables and the piecewise interpolation formula. Functions: `computeSubIndices()` calculates the AQI sub-index for each pollutant (PM2.5, PM10, CO, NO₂), `computeAQI()` returns the final AQI as the MAX of all sub-indices, `classifyAQI()` converts a number into a level name (e.g. 74 → "Moderate"), `aqiZoneColor()` returns the EPA colour for a value, `generateSensors()` creates random mock sensor readings, `generateAfterPurification()` simulates 40–70% reduction in PM2.5 and PM10 after the air purifier. |
+| `services/aqiCalc.js` | All the AQI maths. Contains the EPA breakpoint tables and the piecewise interpolation formula. Functions: `computeSubIndices()` calculates the AQI sub-index for each pollutant (PM2.5, PM10, CO, O₃, NO₂ — CO₂ excluded), `computeAQI()` returns the final AQI as the MAX of all 5 sub-indices, `classifyAQI()` converts a number into a level name (e.g. 74 → "Moderate"), `aqiZoneColor()` returns the EPA colour for a value, `generateSensors()` creates random mock sensor readings for all 6 sensors, `generateAfterPurification()` simulates 40–70% reduction in PM2.5 and PM10 after the air purifier. |
 
 ---
 
@@ -183,7 +183,7 @@ Each file is one full page the user sees.
 | `pages/ForgotPassword.jsx` | `/forgot-password` | Email entry form for password reset. Calls `forgotSendOtp` then navigates to OTP verify page. |
 | `pages/ForgotOTP.jsx` | `/forgot-password/verify` | OTP verify step for password reset. On success receives a `resetToken` and navigates to the new password page. |
 | `pages/ResetPassword.jsx` | `/reset-password` | New password form. Shows which email is being reset at the top. Has a password strength bar. On success shows a "Password reset!" screen with a back-to-login button. |
-| `pages/Dashboard.jsx` | `/dashboard` | The main air quality dashboard. Left side: 3 stat cards (AQI, Sensors, Data Points) + 5 before-purification sensor cards + 2 after-purification comparison cards + AQI trend chart + PM2.5 and CO sparklines. Right side (scrollable): Overall AQI status card + pollutant sub-indices breakdown + arc gauges + EPA classification scale + system info. |
+| `pages/Dashboard.jsx` | `/dashboard` | The main air quality dashboard. Left side: 3 stat cards (AQI, **SENSORS = 6**, Data Points) + **BEFORE PURIFICATION**: 5 sensor cards in a row (PM2.5, PM10, CO, O₃, NO₂) + **AFTER PURIFICATION**: 3-column row — PM2.5 before→after card, PM10 before→after card, CO₂ indoor card — + AQI trend chart + PM2.5 and CO sparklines. Right side (scrollable): Overall AQI status card + pollutant sub-indices breakdown (5 pollutants) + arc gauges + EPA classification scale + system info. |
 | `pages/Profile.jsx` | `/profile` | User profile page. Shows avatar (click to upload photo), account details (name, email, location), account info section, and a password change form (current password + new password + confirm). |
 
 ---
@@ -351,8 +351,8 @@ useAQIData calls generateSensors() from aqiCalc.js (mock data in dev)
 useAQIData returns sensors, aqiValue, history, etc.
     ↓
 Dashboard.jsx passes data to components:
-  sensors → SensorCard × 5
-  sensorsAfter → after-purification cards × 2
+  sensors (filtered !indoor) → SensorCard × 5  (before purification row)
+  sensorsAfter → after-purification cards × 2 + CO₂ indoor card × 1
   history → AQIChart + Sparkline × 2
   aqiValue → MetricCard + right sidebar
   subIndices → sub-index breakdown bars

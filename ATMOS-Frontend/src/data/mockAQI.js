@@ -5,12 +5,13 @@ export const STATIONS = [
   { id: 'MOT-04',  name: 'Motijheel',   location: 'Dhaka-1000', lat: 23.7337, lng: 90.4181, active: true },
 ]
 
-// Before purification: 5 sensors from IoT hardware.
-// CO₂ is a ventilation/indoor metric — displayed but excluded from EPA AQI calculation.
+// Before purification: 6 sensors from IoT hardware.
+// CO₂ is a ventilation/indoor metric — displayed separately, excluded from EPA AQI calculation.
 export const SENSOR_DEFS = [
   { name: 'PM2.5', unit: 'μg/m³', max: 200,  safe: 35.4, color: '#2563eb', description: 'Particle pollution (PM₂.₅)' },
   { name: 'PM10',  unit: 'μg/m³', max: 300,  safe: 54,   color: '#7c3aed', description: 'Coarse particulate matter' },
   { name: 'CO',    unit: 'ppm',   max: 15,   safe: 4.4,  color: '#ea580c', description: 'Carbon monoxide' },
+  { name: 'O₃',   unit: 'ppb',   max: 200,  safe: 70,   color: '#16a34a', description: 'Ozone (8-hour)' },
   { name: 'NO₂',  unit: 'ppb',   max: 200,  safe: 53,   color: '#db2777', description: 'Nitrogen dioxide' },
   { name: 'CO₂',  unit: 'ppm',   max: 2000, safe: 1000, color: '#0891b2', description: 'Carbon dioxide', indoor: true },
 ]

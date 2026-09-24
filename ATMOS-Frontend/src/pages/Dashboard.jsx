@@ -75,7 +75,7 @@ export default function Dashboard() {
             {/* ── Stats bar (3 cards, 4th slot intentionally empty) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, flexShrink: 0 }}>
               <MetricCard label="AQI INDEX"    value={aqiValue} sub={`${aqiLevel} · ${cfg.range}`} accent={cfg.textVar} />
-              <MetricCard label="SENSORS"      value={sensors.filter(s => !s.indoor && s.value > 0).length}
+              <MetricCard label="SENSORS"      value={sensors.length}
                 sub={aboveSafe > 0 ? `${aboveSafe} above safe limit` : 'All within safe limits'}
                 accent={aboveSafe > 0 ? 'var(--sensor-alert)' : undefined} />
               <MetricCard label="DATA POINTS"  value="20" sub="Last 60 min · 3 min intervals" />
@@ -91,7 +91,7 @@ export default function Dashboard() {
                 <span style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>5 sensors · IoT raw readings</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 10 }}>
-                {sensors.map(s => <SensorCard key={s.name} sensor={s} />)}
+                {sensors.filter(s => !s.indoor).map(s => <SensorCard key={s.name} sensor={s} />)}
               </div>
             </div>
 
@@ -102,9 +102,9 @@ export default function Dashboard() {
                   AFTER PURIFICATION
                 </span>
                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                <span style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>PM₂.₅ &amp; PM₁₀ post-filter</span>
+                <span style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>PM₂.₅ &amp; PM₁₀ post-filter · CO₂ indoor</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.8fr', gap: 10 }}>
                 {sensorsAfter.map(sAfter => {
                   const sBefore   = sensors.find(s => s.name === sAfter.name)
                   const reduction = sBefore && sBefore.value > 0
@@ -202,6 +202,82 @@ export default function Dashboard() {
                     </div>
                   )
                 })}
+                {(() => {
+                  const co2 = sensors.find(s => s.indoor)
+                  if (!co2) return null
+                  const co2Pct  = Math.min(co2.value / co2.max * 100, 100)
+                  const safePct = Math.min(co2.safe  / co2.max * 100, 100)
+                  const isOver  = co2.value > co2.safe
+                  return (
+                    <div key="co2-indoor" style={{
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 14, padding: '10px 12px',
+                      display: 'flex', flexDirection: 'column', gap: 6,
+                      boxShadow: 'var(--shadow-card)',
+                    }}>
+                      {/* Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.04em' }}>CO₂</span>
+                          <span style={{
+                            fontSize: 7, fontFamily: 'var(--font-mono)', fontWeight: 600,
+                            color: co2.color, background: `${co2.color}18`,
+                            padding: '1px 5px', borderRadius: 4, letterSpacing: '0.04em',
+                          }}>INDOOR</span>
+                        </div>
+                        <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>{co2.unit}</span>
+                      </div>
+
+                      {/* Main row: current value + status badge */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                          <span style={{ fontSize: 8, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', letterSpacing: '0.06em' }}>CURRENT</span>
+                          <span style={{
+                            fontSize: 17, fontWeight: 700, fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums', lineHeight: 1,
+                            color: isOver ? 'var(--sensor-alert)' : 'var(--text-2)',
+                          }}>{co2.value}</span>
+                        </div>
+                        <div style={{
+                          marginLeft: 'auto',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center',
+                          background: `${co2.color}15`, borderRadius: 10,
+                          padding: '3px 10px', border: `1px solid ${co2.color}35`,
+                        }}>
+                          <span style={{
+                            fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)',
+                            lineHeight: 1, color: isOver ? 'var(--sensor-alert)' : co2.color,
+                          }}>{isOver ? '▲' : '✓'}</span>
+                          <span style={{ fontSize: 7, fontFamily: 'var(--font-mono)', color: isOver ? 'var(--sensor-alert)' : co2.color, opacity: 0.85, marginTop: 2, letterSpacing: '0.04em' }}>
+                            {isOver ? 'HIGH CO₂' : 'NORMAL'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bar */}
+                      <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, position: 'relative' }}>
+                        <div style={{
+                          position: 'absolute', left: 0, top: 0, height: '100%',
+                          width: `${co2Pct}%`,
+                          background: isOver ? 'var(--sensor-alert)' : co2.color,
+                          borderRadius: 2, transition: 'width 0.6s ease',
+                        }} />
+                        <div style={{
+                          position: 'absolute', left: `${safePct}%`, top: -3,
+                          width: 2, height: 10, background: 'var(--text-3)', borderRadius: 1,
+                        }} />
+                      </div>
+
+                      {/* Labels */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>
+                        <span>0</span>
+                        <span>safe: {co2.safe}</span>
+                        <span>max: {co2.max}</span>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
 
@@ -397,7 +473,7 @@ export default function Dashboard() {
                   })}
                 </div>
                 <div style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', marginTop: 8, lineHeight: 1.4 }}>
-                  Overall AQI = MAX(PM₂.₅, PM₁₀, CO, NO₂) · CO₂ excluded (ventilation metric)
+                  Overall AQI = MAX(PM₂.₅, PM₁₀, CO, O₃, NO₂) · CO₂ excluded (ventilation metric)
                 </div>
               </div>
             )}

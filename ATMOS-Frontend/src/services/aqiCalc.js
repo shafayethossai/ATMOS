@@ -35,6 +35,15 @@ const BREAKPOINTS = {
     { cLo: 650,  cHi: 1249, iLo: 201, iHi: 300 },
     { cLo: 1250, cHi: 2049, iLo: 301, iHi: 500 },
   ],
+  // O₃ 8-hour average in ppb (truncate to integer before interpolation)
+  o3: [
+    { cLo: 0,   cHi: 54,  iLo: 0,   iHi: 50  },
+    { cLo: 55,  cHi: 70,  iLo: 51,  iHi: 100 },
+    { cLo: 71,  cHi: 85,  iLo: 101, iHi: 150 },
+    { cLo: 86,  cHi: 105, iLo: 151, iHi: 200 },
+    { cLo: 106, cHi: 200, iLo: 201, iHi: 300 },
+    { cLo: 405, cHi: 604, iLo: 301, iHi: 500 },
+  ],
 }
 
 // EPA requires truncation (not rounding) before interpolation
@@ -49,7 +58,7 @@ function interpolate(cp, bps) {
   return Math.round(((bp.iHi - bp.iLo) / (bp.cHi - bp.cLo)) * (cp - bp.cLo) + bp.iLo)
 }
 
-// AQI sub-indices for the 4 pollutants measured by this hardware that have EPA AQI standards.
+// AQI sub-indices for the 5 pollutants measured by this hardware that have EPA AQI standards.
 // CO₂ is intentionally excluded — it is a ventilation metric, not an EPA AQI pollutant.
 export function computeSubIndices(sensors) {
   const get = name => sensors.find(s => s.name === name)?.value ?? 0
@@ -57,6 +66,7 @@ export function computeSubIndices(sensors) {
     'PM2.5': interpolate(trunc(get('PM2.5'), 1), BREAKPOINTS.pm25),
     'PM10':  interpolate(trunc(get('PM10'), 0),  BREAKPOINTS.pm10),
     'CO':    interpolate(trunc(get('CO'), 1),    BREAKPOINTS.co),
+    'O₃':   interpolate(trunc(get('O₃'), 0),    BREAKPOINTS.o3),
     'NO₂':  interpolate(trunc(get('NO₂'), 0),   BREAKPOINTS.no2),
   }
 }
@@ -94,6 +104,8 @@ export function generateSensors() {
       ? +(Math.random() * 500 + 350).toFixed(0)
       : def.name === 'CO'
       ? +(Math.random() * 8 + 0.1).toFixed(2)
+      : def.name === 'O₃'
+      ? +(Math.random() * 90 + 10).toFixed(0)
       : +(Math.random() * (def.safe * 1.8) + def.safe * 0.1).toFixed(1),
   }))
 }
