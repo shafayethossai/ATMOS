@@ -7,17 +7,45 @@ import (
 )
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux, manager *middlewares.Manager) {
-	// Auth routes (no auth required)
-	mux.HandleFunc("POST /api/auth/signup/send-otp", h.SignupSendOTP)
-	mux.HandleFunc("POST /api/auth/signup/verify-otp", h.SignupVerifyOTP)
-	mux.HandleFunc("POST /api/auth/login", h.Login)
-	mux.HandleFunc("POST /api/auth/forgot-password/send-otp", h.ForgotSendOTP)
-	mux.HandleFunc("POST /api/auth/forgot-password/verify-otp", h.ForgotVerifyOTP)
-	mux.HandleFunc("POST /api/auth/reset-password", h.ResetPassword)
+	// ── Google OAuth (public) ────────────────────────────────────────────────
+	mux.Handle("GET /api/auth/google",
+		manager.With(http.HandlerFunc(h.GoogleLogin)),
+	)
+	mux.Handle("GET /api/auth/google/callback",
+		manager.With(http.HandlerFunc(h.GoogleCallback)),
+	)
 
-	// Profile routes (auth required)
-	mux.Handle("GET /api/user/me", manager.With(http.HandlerFunc(h.GetMe), h.middlewares.Auth))
-	mux.Handle("PATCH /api/user/profile", manager.With(http.HandlerFunc(h.UpdateProfile), h.middlewares.Auth))
-	mux.Handle("POST /api/user/change-password", manager.With(http.HandlerFunc(h.ChangePassword), h.middlewares.Auth))
-	mux.Handle("POST /api/user/avatar", manager.With(http.HandlerFunc(h.UploadAvatar), h.middlewares.Auth))
+	// ── Auth (public) ────────────────────────────────────────────────────────
+	mux.Handle("POST /api/auth/signup/send-otp",
+		manager.With(http.HandlerFunc(h.SignupSendOTP)),
+	)
+	mux.Handle("POST /api/auth/signup/verify-otp",
+		manager.With(http.HandlerFunc(h.SignupVerifyOTP)),
+	)
+	mux.Handle("POST /api/auth/login",
+		manager.With(http.HandlerFunc(h.Login)),
+	)
+	mux.Handle("POST /api/auth/forgot-password/send-otp",
+		manager.With(http.HandlerFunc(h.ForgotSendOTP)),
+	)
+	mux.Handle("POST /api/auth/forgot-password/verify-otp",
+		manager.With(http.HandlerFunc(h.ForgotVerifyOTP)),
+	)
+	mux.Handle("POST /api/auth/reset-password",
+		manager.With(http.HandlerFunc(h.ResetPassword)),
+	)
+
+	// ── Profile (protected — requires JWT) ───────────────────────────────────
+	mux.Handle("GET /api/user/me",
+		manager.With(http.HandlerFunc(h.GetMe), h.middlewares.AuthenticateJWT),
+	)
+	mux.Handle("PATCH /api/user/profile",
+		manager.With(http.HandlerFunc(h.UpdateProfile), h.middlewares.AuthenticateJWT),
+	)
+	mux.Handle("POST /api/user/change-password",
+		manager.With(http.HandlerFunc(h.ChangePassword), h.middlewares.AuthenticateJWT),
+	)
+	mux.Handle("POST /api/user/avatar",
+		manager.With(http.HandlerFunc(h.UploadAvatar), h.middlewares.AuthenticateJWT),
+	)
 }

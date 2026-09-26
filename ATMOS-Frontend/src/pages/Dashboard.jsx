@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { getMe } from '../api/profileApi'
 import { AQIChart } from '../components/ui/AQIChart'
 import { ArcGauge } from '../components/ui/ArcGauge'
 import { MetricCard } from '../components/ui/MetricCard'
@@ -47,6 +49,23 @@ const AQI_LEGEND = [
 
 export default function Dashboard() {
   const { activeStation } = useStation()
+
+  // pick up JWT from URL after Google OAuth redirect, then load user info
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
+    if (token) {
+      localStorage.setItem('token', token)
+      window.history.replaceState({}, '', '/dashboard')
+    }
+    // fetch user if not already in localStorage (e.g. after Google OAuth)
+    if (!localStorage.getItem('user')) {
+      getMe().then(u => {
+        localStorage.setItem('user', JSON.stringify({ id: u.id, name: u.name, email: u.email }))
+      }).catch(() => {})
+    }
+  }, [])
+
   const {
     sensors, sensorsAfter, history, aqiValue, aqiLevel, criticalPollutant,
     subIndices, aboveSafe, isLoading, lastUpdated, refresh,

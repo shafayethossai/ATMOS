@@ -17,8 +17,19 @@ type Config struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
+	FrontendURL        string
 
 	ConnectionString string
+
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
+
+	CloudinaryCloudName string
+	CloudinaryAPIKey    string
+	CloudinaryAPISecret string
 }
 
 var configuration *Config
@@ -90,15 +101,79 @@ func loadConfig() {
 		os.Exit(1)
 	}
 
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		fmt.Println("FRONTEND_URL is required!")
+		os.Exit(1)
+	}
+
+	// SMTP
+	smtpHost := os.Getenv("SMTP_HOST")
+	if smtpHost == "" {
+		fmt.Println("SMTP_HOST is required!")
+		os.Exit(1)
+	}
+
+	smtpPort := os.Getenv("SMTP_PORT")
+	if smtpPort == "" {
+		fmt.Println("SMTP_PORT is required!")
+		os.Exit(1)
+	}
+
+	smtpUser := os.Getenv("SMTP_USER")
+	if smtpUser == "" {
+		fmt.Println("SMTP_USER is required!")
+		os.Exit(1)
+	}
+
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	if smtpPassword == "" {
+		fmt.Println("SMTP_PASSWORD is required!")
+		os.Exit(1)
+	}
+
+	smtpFrom := os.Getenv("SMTP_FROM")
+
+	cloudinaryCloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
+	if cloudinaryCloudName == "" {
+		fmt.Println("CLOUDINARY_CLOUD_NAME is required!")
+		os.Exit(1)
+	}
+
+	cloudinaryAPIKey := os.Getenv("CLOUDINARY_API_KEY")
+	if cloudinaryAPIKey == "" {
+		fmt.Println("CLOUDINARY_API_KEY is required!")
+		os.Exit(1)
+	}
+
+	cloudinaryAPISecret := os.Getenv("CLOUDINARY_API_SECRET")
+	if cloudinaryAPISecret == "" {
+		fmt.Println("CLOUDINARY_API_SECRET is required!")
+		os.Exit(1)
+	}
+
 	configuration = &Config{
-		Version:            version,
-		ServiceName:        serviceName,
-		HttpPort:           httpPort,
-		SecretKey:          secretKey,
-		ConnectionString:   ConnectionString,
+		Version:     version,
+		ServiceName: serviceName,
+		HttpPort:    httpPort,
+		SecretKey:   secretKey,
+
+		ConnectionString: ConnectionString,
+
 		GoogleClientID:     googleClientID,
 		GoogleClientSecret: googleClientSecret,
 		GoogleRedirectURL:  googleRedirectURL,
+		FrontendURL:        frontendURL,
+
+		SMTPHost:     smtpHost,
+		SMTPPort:     smtpPort,
+		SMTPUser:     smtpUser,
+		SMTPPassword: smtpPassword,
+		SMTPFrom:     smtpFrom,
+
+		CloudinaryCloudName: cloudinaryCloudName,
+		CloudinaryAPIKey:    cloudinaryAPIKey,
+		CloudinaryAPISecret: cloudinaryAPISecret,
 	}
 }
 

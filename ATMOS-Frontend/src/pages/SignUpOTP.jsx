@@ -22,8 +22,10 @@ export default function SignUpOTP() {
   async function handleResend() {
     setOtp(''); setError('')
     try {
-      await signupSendOtp(name, email, password)
-      startResendTimer(setTimer)
+      const data = await signupVerifyOtp(email, otp)
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      navigate('/dashboard')
     } catch (err) {
       setError(err.message)
     }
@@ -34,7 +36,9 @@ export default function SignUpOTP() {
     if (otp.length < 6) { setError('Enter all 6 digits.'); return }
     setError(''); setLoading(true)
     try {
-      await signupVerifyOtp(email, otp)
+      const data = await signupVerifyOtp(email, otp)
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)

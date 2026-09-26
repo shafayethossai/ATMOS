@@ -7,7 +7,7 @@ async function post(path, body) {
     body: JSON.stringify(body),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.message ?? `Request failed (${res.status})`)
+  if (!res.ok) throw new Error(data.error ?? data.message ?? `Request failed (${res.status})`)
   return data
 }
 

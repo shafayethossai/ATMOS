@@ -1,4 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+
+function PrivateRoute({ children }) {
+  const urlToken = new URLSearchParams(window.location.search).get('token')
+  if (urlToken) localStorage.setItem('token', urlToken)
+  return localStorage.getItem('token') ? children : <Navigate to="/login" replace />
+}
 import { ThemeProvider } from './context/ThemeContext'
 import { StationProvider } from './context/StationContext'
 import Login          from './pages/Login'
@@ -23,8 +29,8 @@ export default function App() {
             <Route path="/forgot-password"        element={<ForgotPassword />} />
             <Route path="/forgot-password/verify" element={<ForgotOTP />} />
             <Route path="/reset-password"         element={<ResetPassword />} />
-            <Route path="/dashboard"              element={<Dashboard />} />
-            <Route path="/profile"               element={<Profile />} />
+            <Route path="/dashboard"              element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/profile"               element={<PrivateRoute><Profile /></PrivateRoute>} />
             <Route path="*"                       element={<Navigate to="/login" replace />} />
           </Routes>
         </BrowserRouter>

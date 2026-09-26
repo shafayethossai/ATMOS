@@ -40,8 +40,8 @@ type ResetToken struct {
 
 type UserRepo interface {
 	FindByEmail(email string) (*User, error)
-	FindByID(id string) (*User, error)
 	CreateUser(name, email, hash string) (*User, error)
+	FindByID(id string) (*User, error)
 	UpdatePassword(userID, newHash string) error
 	UpdateProfile(userID, name, location string) error
 	UpdateAvatar(userID, url string) error
@@ -98,30 +98,6 @@ func (r *userRepo) CreateUser(name, email, hash string) (*User, error) {
 	return &u, nil
 }
 
-func (r *userRepo) UpdatePassword(userID, newHash string) error {
-	_, err := r.db.Exec(`
-		UPDATE users SET password_hash = $1, updated_at = NOW()
-		WHERE id = $2`,
-		newHash, userID)
-	return err
-}
-
-func (r *userRepo) UpdateProfile(userID, name, location string) error {
-	_, err := r.db.Exec(`
-		UPDATE users SET name = $1, location = $2, updated_at = NOW()
-		WHERE id = $3`,
-		name, location, userID)
-	return err
-}
-
-func (r *userRepo) UpdateAvatar(userID, url string) error {
-	_, err := r.db.Exec(`
-		UPDATE users SET avatar_url = $1, updated_at = NOW()
-		WHERE id = $2`,
-		url, userID)
-	return err
-}
-
 func (r *userRepo) SaveSignupOTP(email, code, name, hash string, expiresAt time.Time) error {
 	_, err := r.db.Exec(`
 		INSERT INTO otp_tokens (email, code, type, pending_name, pending_hash, expires_at)
@@ -151,6 +127,30 @@ func (r *userRepo) MarkOTPUsed(otpID string) error {
 
 func (r *userRepo) DeleteOldOTPs(email, otpType string) error {
 	_, err := r.db.Exec(`DELETE FROM otp_tokens WHERE email = $1 AND type = $2`, email, otpType)
+	return err
+}
+
+func (r *userRepo) UpdatePassword(userID, newHash string) error {
+	_, err := r.db.Exec(`
+		UPDATE users SET password_hash = $1, updated_at = NOW()
+		WHERE id = $2`,
+		newHash, userID)
+	return err
+}
+
+func (r *userRepo) UpdateProfile(userID, name, location string) error {
+	_, err := r.db.Exec(`
+		UPDATE users SET name = $1, location = $2, updated_at = NOW()
+		WHERE id = $3`,
+		name, location, userID)
+	return err
+}
+
+func (r *userRepo) UpdateAvatar(userID, url string) error {
+	_, err := r.db.Exec(`
+		UPDATE users SET avatar_url = $1, updated_at = NOW()
+		WHERE id = $2`,
+		url, userID)
 	return err
 }
 

@@ -21,7 +21,9 @@ export default function Login() {
     if (password.length < 6)  { setError('Password must be at least 6 characters.'); return }
     setLoading(true)
     try {
-      await signIn(email, password)
+      const data = await signIn(email, password)
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)
@@ -35,7 +37,7 @@ export default function Login() {
       <div style={authCard}>
         <LogoHeader />
         <AuthTabs active="login" />
-        <GoogleBtn onClick={() => setTimeout(() => navigate('/dashboard'), 1200)} />
+        <GoogleBtn onClick={() => { window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google` }} />
         <AuthDivider />
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>

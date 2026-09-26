@@ -10,6 +10,13 @@ function UserMenu() {
   const ref = useRef(null)
   const navigate = useNavigate()
 
+  const user = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} }
+  })()
+  const name    = user.name  || 'User'
+  const email   = user.email || ''
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U'
+
   useEffect(() => {
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
@@ -17,6 +24,12 @@ function UserMenu() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  function signOut() {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    navigate('/login')
+  }
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -36,9 +49,9 @@ function UserMenu() {
           background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 11, fontWeight: 700, color: '#fff',
-        }}>SU</div>
+        }}>{initials}</div>
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap' }}>Shafayat</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap' }}>{name.split(' ')[0]}</div>
         </div>
         <span style={{
           color: 'var(--text-3)', fontSize: 10,
@@ -56,8 +69,8 @@ function UserMenu() {
           boxShadow: '0 10px 40px rgba(0,0,0,0.14)', overflow: 'hidden', zIndex: 100,
         }}>
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Shafayat Ullah</div>
-            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>habiburrahman3089@gmail.com</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{name}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{email}</div>
           </div>
           <button
             onClick={() => { setOpen(false); navigate('/profile') }}
@@ -73,7 +86,7 @@ function UserMenu() {
           </button>
           <div style={{ borderTop: '1px solid var(--border)' }}>
             <button
-              onClick={() => { setOpen(false); navigate('/login') }}
+              onClick={signOut}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                 padding: '10px 14px', background: 'none', border: 'none',

@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AtmosLogo } from '../assets/AtmosLogo'
 import { EyeToggle, PasswordStrength } from '../components/ui/AuthShell'
 import { useTheme } from '../context/ThemeContext'
 import { Moon, Sun } from 'lucide-react'
+import { getMe, updateProfile, changePassword, uploadAvatar } from '../api/profileApi'
 
 const labelStyle = {
   fontSize: 11, color: 'var(--text-3)', display: 'block',
@@ -38,14 +39,17 @@ function ProfileInput({ label, ...props }) {
 }
 
 export default function Profile() {
-  const navigate          = useNavigate()
+  const navigate            = useNavigate()
   const { theme, setTheme } = useTheme()
-  const fileRef           = useRef(null)
+  const fileRef             = useRef(null)
 
-  const [name, setName]           = useState('Shafayat Ullah')
-  const [location, setLocation]   = useState('Dhaka, Bangladesh')
+  const [email, setEmail]         = useState('')
+  const [name, setName]           = useState('')
+  const [location, setLocation]   = useState('')
   const [photo, setPhoto]         = useState(null)
   const [saved, setSaved]         = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saving, setSaving]       = useState(false)
 
   const [currentPw, setCurrentPw] = useState('')
   const [newPw, setNewPw]         = useState('')
@@ -55,25 +59,60 @@ export default function Profile() {
   const [showCf, setShowCf]       = useState(false)
   const [pwError, setPwError]     = useState('')
   const [pwSaved, setPwSaved]     = useState(false)
+  const [pwSaving, setPwSaving]   = useState(false)
 
-  function handlePhoto(e) {
+  // load user on mount
+  useEffect(() => {
+    getMe().then(u => {
+      setName(u.name ?? '')
+      setEmail(u.email ?? '')
+      setLocation(u.location ?? '')
+      if (u.avatar_url) setPhoto(u.avatar_url)
+    }).catch(() => {})
+  }, [])
+
+  async function handlePhoto(e) {
     const file = e.target.files?.[0]; if (!file) return
+    // show preview immediately
     const reader = new FileReader()
     reader.onload = ev => setPhoto(ev.target.result)
     reader.readAsDataURL(file)
+    // upload to Cloudinary via backend
+    try {
+      const data = await uploadAvatar(file)
+      setPhoto(data.avatar_url)
+    } catch (err) {
+      console.error('Avatar upload failed:', err.message)
+    }
   }
 
-  function saveProfile() {
-    setSaved(true); setTimeout(() => setSaved(false), 2500)
+  async function saveProfile() {
+    setSaveError(''); setSaving(true)
+    try {
+      await updateProfile(name, location)
+      setSaved(true); setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      setSaveError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  function savePassword() {
+  async function savePassword() {
     setPwError('')
     if (!currentPw)          { setPwError('Enter your current password.'); return }
     if (newPw.length < 8)    { setPwError('New password must be at least 8 characters.'); return }
     if (newPw !== confirmPw) { setPwError('Passwords do not match.'); return }
-    setPwSaved(true); setCurrentPw(''); setNewPw(''); setConfirmPw('')
-    setTimeout(() => setPwSaved(false), 2500)
+    setPwSaving(true)
+    try {
+      await changePassword(currentPw, newPw)
+      setPwSaved(true); setCurrentPw(''); setNewPw(''); setConfirmPw('')
+      setTimeout(() => setPwSaved(false), 2500)
+    } catch (err) {
+      setPwError(err.message)
+    } finally {
+      setPwSaving(false)
+    }
   }
 
   const nextTheme = theme === 'dark' ? 'light' : 'dark'
@@ -143,7 +182,7 @@ export default function Profile() {
             </div>
             <div>
               <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-1)' }}>My Profile</div>
-              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>habiburrahman3089@gmail.com</div>
+              <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{email}</div>
             </div>
           </div>
 
@@ -152,7 +191,7 @@ export default function Profile() {
             <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 20 }}>ACCOUNT DETAILS</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <ProfileInput label="FULL NAME" value={name} onChange={e => setName(e.target.value)} />
-              <ProfileInput label="EMAIL ADDRESS" value="habiburrahman3089@gmail.com" readOnly
+              <ProfileInput label="EMAIL ADDRESS" value={email} readOnly
                 style={{ color: 'var(--text-3)', cursor: 'not-allowed' }}
                 onFocus={undefined} onBlur={undefined}
               />
@@ -177,12 +216,14 @@ export default function Profile() {
               </div>
             </div>
             <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button onClick={saveProfile} style={{
+              <button onClick={saveProfile} disabled={saving} style={{
                 background: '#2563eb', color: '#fff', border: 'none',
                 borderRadius: 10, padding: '10px 24px',
-                fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              }}>Save Changes</button>
+                fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.7 : 1,
+              }}>{saving ? 'Saving…' : 'Save Changes'}</button>
               {saved && <span style={{ fontSize: 12, color: '#059669', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>✓ Saved</span>}
+              {saveError && <span style={{ fontSize: 12, color: '#dc2626', fontFamily: 'var(--font-mono)' }}>{saveError}</span>}
             </div>
           </div>
 
@@ -241,11 +282,12 @@ export default function Profile() {
               )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <button onClick={savePassword} style={{
+                <button onClick={savePassword} disabled={pwSaving} style={{
                   background: 'var(--text-1)', color: 'var(--bg)', border: 'none',
                   borderRadius: 10, padding: '10px 24px',
-                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                }}>Update Password</button>
+                  fontSize: 13, fontWeight: 600, cursor: pwSaving ? 'not-allowed' : 'pointer',
+                  opacity: pwSaving ? 0.7 : 1,
+                }}>{pwSaving ? 'Updating…' : 'Update Password'}</button>
                 {pwSaved && <span style={{ fontSize: 12, color: '#059669', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>✓ Password updated</span>}
               </div>
             </div>
