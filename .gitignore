@@ -1,2 +1,19 @@
 CLAUDE.md
 ATMOS-Backend/.env
+FRONTEND.md
+BACKEND_API.md
+BACKEND_GUIDE.md
+ATMOS-Frontend/.env
+
+
+/*
+
+now my software part is almost done. so my hardware also done. hardware was
+  my friend part. so i bring hardware from him. now i will integrate hardware
+  to software. so that we can show real data to dashboard. so i need a plan.
+  first i need to setup arduino ide based on my hardware. after that i should
+  change in code so that data forward as a database format. we use esp32. i
+  listen it sometimes loose the connection or change the route. so i need to
+  fix this. so in this file outside of frontend, backend. creat a file name  hardware+software+connection.md and here explain to.
+
+*/

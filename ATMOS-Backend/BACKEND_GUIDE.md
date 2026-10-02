@@ -565,10 +565,3 @@ go run main.go
 # ✅ Migrations applied successfully
 # 🚀 Server is running on :4000
 ```
-
-Test any endpoint:
-```bash
-curl -X POST http://localhost:4000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"password123"}'
-```

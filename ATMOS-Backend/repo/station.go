@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -27,6 +28,20 @@ type SensorReading struct {
 	AQICO             int       `db:"aqi_co"`
 	AQIO3             int       `db:"aqi_o3"`
 	AQINO2            int       `db:"aqi_no2"`
+	// ESP32 raw fields added in migration 002
+	PM1_0           float64 `db:"pm1_0"`
+	PM1_0After      float64 `db:"pm1_0_after"`
+	MQ7Raw          int     `db:"mq7_raw"`
+	MQ7Voltage      float64 `db:"mq7_voltage"`
+	MQ135Raw        int     `db:"mq135_raw"`
+	MQ135Voltage    float64 `db:"mq135_voltage"`
+	MQ131Raw        int     `db:"mq131_raw"`
+	MQ131Voltage    float64 `db:"mq131_voltage"`
+	MG811Raw        int     `db:"mg811_raw"`
+	MG811Voltage    float64 `db:"mg811_voltage"`
+	PurificationPct float64 `db:"purification_pct"`
+	FanAuto         bool    `db:"fan_auto"`
+	FanRunning      bool    `db:"fan_running"`
 }
 
 type HistoryPoint struct {
@@ -37,9 +52,9 @@ type HistoryPoint struct {
 }
 
 type StationRepo interface {
-	// GetLatestReading(stationID string) (*SensorReading, error)
-	// GetHistory(stationID string, hours int) ([]HistoryPoint, error)
-	// InsertReading(data SensorReading) error
+	GetLatestReading(stationID string) (*SensorReading, error)
+	GetHistory(stationID string, hours int) ([]HistoryPoint, error)
+	InsertReading(data SensorReading) error
 }
 
 type stationRepo struct {
@@ -50,53 +65,65 @@ func NewStationRepo(db *sqlx.DB) StationRepo {
 	return &stationRepo{db: db}
 }
 
-// func (r *stationRepo) GetLatestReading(stationID string) (*SensorReading, error) {
-// 	var s SensorReading
-// 	err := r.db.Get(&s, `
-// 		SELECT * FROM sensor_readings
-// 		WHERE station_id = $1
-// 		ORDER BY recorded_at DESC LIMIT 1`,
-// 		stationID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &s, nil
-// }
+func (r *stationRepo) GetLatestReading(stationID string) (*SensorReading, error) {
+	var s SensorReading
+	err := r.db.Get(&s, `
+		SELECT * FROM sensor_readings
+		WHERE station_id = $1
+		ORDER BY recorded_at DESC LIMIT 1`,
+		stationID)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
 
-// func (r *stationRepo) GetHistory(stationID string, hours int) ([]HistoryPoint, error) {
-// 	var points []HistoryPoint
-// 	err := r.db.Select(&points, `
-// 		SELECT recorded_at, aqi, pm25, co
-// 		FROM sensor_readings
-// 		WHERE station_id = $1
-// 		  AND recorded_at >= NOW() - $2::TEXT::INTERVAL
-// 		ORDER BY recorded_at ASC`,
-// 		stationID, fmt.Sprintf("%d hours", hours))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return points, nil
-// }
+func (r *stationRepo) GetHistory(stationID string, hours int) ([]HistoryPoint, error) {
+	var points []HistoryPoint
+	err := r.db.Select(&points, `
+		SELECT recorded_at, aqi, pm25, co
+		FROM sensor_readings
+		WHERE station_id = $1
+		  AND recorded_at >= NOW() - $2::TEXT::INTERVAL
+		ORDER BY recorded_at ASC`,
+		stationID, fmt.Sprintf("%d hours", hours))
+	if err != nil {
+		return nil, err
+	}
+	return points, nil
+}
 
-// func (r *stationRepo) InsertReading(data SensorReading) error {
-// 	_, err := r.db.Exec(`
-// 		INSERT INTO sensor_readings (
-// 			station_id, device_id,
-// 			pm25, pm10, co, o3, no2, co2,
-// 			pm25_after, pm10_after,
-// 			aqi, aqi_level, critical_pollutant,
-// 			aqi_pm25, aqi_pm10, aqi_co, aqi_o3, aqi_no2
-// 		) VALUES (
-// 			$1,  $2,
-// 			$3,  $4,  $5,  $6,  $7,  $8,
-// 			$9,  $10,
-// 			$11, $12, $13,
-// 			$14, $15, $16, $17, $18
-// 		)`,
-// 		data.StationID, data.DeviceID,
-// 		data.PM25, data.PM10, data.CO, data.O3, data.NO2, data.CO2,
-// 		data.PM25After, data.PM10After,
-// 		data.AQI, data.AQILevel, data.CriticalPollutant,
-// 		data.AQIPM25, data.AQIPM10, data.AQICO, data.AQIO3, data.AQINO2)
-// 	return err
-// }
+func (r *stationRepo) InsertReading(data SensorReading) error {
+	_, err := r.db.Exec(`
+		INSERT INTO sensor_readings (
+			station_id, device_id,
+			pm25, pm10, co, o3, no2, co2,
+			pm25_after, pm10_after,
+			aqi, aqi_level, critical_pollutant,
+			aqi_pm25, aqi_pm10, aqi_co, aqi_o3, aqi_no2,
+			pm1_0, pm1_0_after,
+			mq7_raw, mq7_voltage, mq135_raw, mq135_voltage,
+			mq131_raw, mq131_voltage, mg811_raw, mg811_voltage,
+			purification_pct, fan_auto, fan_running
+		) VALUES (
+			$1,  $2,
+			$3,  $4,  $5,  $6,  $7,  $8,
+			$9,  $10,
+			$11, $12, $13,
+			$14, $15, $16, $17, $18,
+			$19, $20,
+			$21, $22, $23, $24,
+			$25, $26, $27, $28,
+			$29, $30, $31
+		)`,
+		data.StationID, data.DeviceID,
+		data.PM25, data.PM10, data.CO, data.O3, data.NO2, data.CO2,
+		data.PM25After, data.PM10After,
+		data.AQI, data.AQILevel, data.CriticalPollutant,
+		data.AQIPM25, data.AQIPM10, data.AQICO, data.AQIO3, data.AQINO2,
+		data.PM1_0, data.PM1_0After,
+		data.MQ7Raw, data.MQ7Voltage, data.MQ135Raw, data.MQ135Voltage,
+		data.MQ131Raw, data.MQ131Voltage, data.MG811Raw, data.MG811Voltage,
+		data.PurificationPct, data.FanAuto, data.FanRunning)
+	return err
+}
