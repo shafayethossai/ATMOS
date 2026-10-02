@@ -58,9 +58,10 @@ func (h *Handler) IngestReading(w http.ResponseWriter, r *http.Request) {
 	coPPM  := util.MQ7ToCOPPM(req.Gas.MQ7Voltage)
 	o3PPB  := util.MQ131ToO3PPB(req.Gas.MQ131Voltage)
 	co2PPM := util.MG811ToCO2PPM(req.Gas.MG811Voltage)
+	no2PPB := util.MQ135ToNO2PPB(req.Gas.MQ135Voltage) // estimated via MQ135 cross-sensitivity
 
 	// EPA piecewise AQI (MAX of all sub-indices)
-	result := util.CalculateAQI(req.Before.PM2_5, req.Before.PM10, coPPM, o3PPB)
+	result := util.CalculateAQI(req.Before.PM2_5, req.Before.PM10, coPPM, o3PPB, no2PPB)
 
 	reading := repo.SensorReading{
 		StationID:         req.StationID,
@@ -69,6 +70,7 @@ func (h *Handler) IngestReading(w http.ResponseWriter, r *http.Request) {
 		PM10:              req.Before.PM10,
 		CO:                coPPM,
 		O3:                o3PPB,
+		NO2:               no2PPB,
 		CO2:               co2PPM,
 		PM25After:         req.After.PM2_5,
 		PM10After:         req.After.PM10,
@@ -79,6 +81,7 @@ func (h *Handler) IngestReading(w http.ResponseWriter, r *http.Request) {
 		AQIPM10:           result.SubPM10,
 		AQICO:             result.SubCO,
 		AQIO3:             result.SubO3,
+		AQINO2:            result.SubNO2,
 		PM1_0:             req.Before.PM1_0,
 		PM1_0After:        req.After.PM1_0,
 		MQ7Raw:            req.Gas.MQ7Raw,

@@ -39,6 +39,7 @@ func (h *Handler) GetLatest(w http.ResponseWriter, r *http.Request) {
 			"pm10": reading.AQIPM10,
 			"co":   reading.AQICO,
 			"o3":   reading.AQIO3,
+			"no2":  reading.AQINO2,
 		},
 	})
 }

@@ -36,7 +36,7 @@ function mapToSensorsAfter(data) {
 const _init = generateSensors()
 const _initAQI = computeAQI(_init)
 
-export function useAQIData(intervalMs = 8000) {
+export function useAQIData(intervalMs = 5000) {
   const [sensors, setSensors]             = useState(_init)
   const [sensorsAfter, setSensorsAfter]   = useState(() => generateAfterPurification(_init))
   const [history, setHistory]             = useState(HISTORY_PRELOAD)
