@@ -22,10 +22,8 @@ export default function SignUpOTP() {
   async function handleResend() {
     setOtp(''); setError('')
     try {
-      const data = await signupVerifyOtp(email, otp)
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      navigate('/dashboard')
+      await signupSendOtp(name, email, password)
+      startResendTimer(setTimer)
     } catch (err) {
       setError(err.message)
     }

@@ -74,11 +74,14 @@ export function AQIChart({ data }) {
           fill="#94a3b8" fontSize="7.5" fontFamily="DM Mono, monospace">{t}</text>
       ))}
 
-      {/* X-axis time labels */}
-      {data.map((d, i) => i % 4 === 0 && (
-        <text key={i} x={toX(i)} y={h - 4} textAnchor="middle"
-          fill="#94a3b8" fontSize="8" fontFamily="DM Mono, monospace">{d.time}</text>
-      ))}
+      {/* X-axis time labels — dynamic step so ~6 labels max */}
+      {(() => {
+        const step = Math.max(1, Math.ceil(data.length / 6))
+        return data.map((d, i) => (i % step === 0 || i === data.length - 1) && (
+          <text key={i} x={toX(i)} y={h - 4} textAnchor="middle"
+            fill="#94a3b8" fontSize="8" fontFamily="DM Mono, monospace">{d.time}</text>
+        ))
+      })()}
 
       {/* Axes */}
       <line x1={padL} y1={padT} x2={padL} y2={padT + chartH} stroke="var(--border)" strokeWidth="1" />
