@@ -47,8 +47,7 @@ Thumbs.db
 # Claude Code private files
 CLAUDE.md
 FRONTEND.md
-BACKEND_API.md
-BACKEND_GUIDE.md
+BACKEND.md
 atmos_main.ino
 
 # ML Model notebook outputs (large files)
