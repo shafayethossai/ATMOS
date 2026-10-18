@@ -877,3 +877,127 @@ The ML model is trained only on 4 Dhaka stations (Azimpur, Dhaka, Paltan, Tungi)
 - This is standard practice — all global AQI prediction systems work this way
 
 For your capstone, this is completely valid and the right approach.
+
+
+
+
+
+
+
+
+############*****************************************************************************
+
+
+---
+
+## 📋 Session Log — 2026-10-19 (Today's Work)
+
+### What We Did Today
+
+#### 1. Fixed ML API 500 Error on Daily Forecast (`serve.py`)
+
+**Root Cause 1:** `compute_aqi` was being called with numpy arrays (entire column at once), but internally it calls `float(...)` which only works with scalars.
+
+**Fix:** Changed from:
+```python
+full['aqi'] = compute_aqi(**{p: full[p].values for p in POLLUTANTS})
+```
+To row-by-row:
+```python
+full['aqi'] = full.apply(lambda row: compute_aqi(**{p: row[p] for p in POLLUTANTS}), axis=1)
+```
+Applied same fix to `device-requirement` endpoint.
+
+**Root Cause 2:** When SQLite DB is empty (after container restart), the old code had no early exit and crashed trying to predict on empty data.
+
+**Fix:** Added early return when `n_hist == 0`:
+```python
+if n_hist == 0:
+    return {'basis': 'no_data', 'message': 'Collecting data — need 3 days minimum', 'forecast': []}
+```
+
+---
+
+#### 2. Fixed Azure Not Pulling New Docker Image
+
+**Problem:** GitHub Actions was using `:latest` tag for the Docker image. Azure App Service cached the old `:latest` image and never pulled updates — even after successful deploys and manual restarts.
+
+**Fix:** Updated `deploy.yml` to tag images with the git commit SHA:
+```yaml
+tags: |
+  ghcr.io/${{ github.repository }}:latest
+  ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+images: ghcr.io/${{ github.repository }}:${{ github.sha }}   ← Azure always pulls new
+```
+Now every deploy forces Azure to pull the exact new image.
+
+---
+
+#### 3. Restructured `daily_ep` with Try-Except for Debugging
+
+Wrapped the daily forecast logic in a broad try-except so errors surface as JSON instead of plain 500:
+```python
+@api.get('/api/v1/forecast/daily')
+def daily_ep(device_id, location, days, x_api_key=Header(default='')):
+    if x_api_key != READ_KEY: raise HTTPException(401, 'bad read key')
+    try:
+        return _daily_inner(device_id, location, days)
+    except Exception as e:
+        return {'status': 'error', 'detail': str(e), 'forecast': []}
+```
+
+---
+
+#### 4. Tested All 5 ML API Endpoints in Postman
+
+| Endpoint | Result |
+|---|---|
+| GET `/healthz` | ✅ Returns `ok: true` |
+| POST `/api/v1/readings` | ✅ Returns `accepted: true` |
+| GET `/api/v1/forecast/hourly` | ✅ Returns `warming_up` (no data yet) |
+| GET `/api/v1/forecast/daily` | ✅ Returns `basis: no_data` (no data yet) |
+| GET `/api/v1/device-requirement` | ✅ Not yet tested |
+
+**Postman note:** Always create a **fresh GET request** tab for each new endpoint test. Saved requests can have conflicting headers that cause "bad read key" even when the key is correct.
+
+---
+
+#### 5. Important Things Learned About Azure + Docker
+
+- **SQLite DB resets on every container restart** — any readings posted will be lost after a redeploy. This is expected. The DB is in-container only.
+- **Azure App Service caches `:latest` Docker tag** — always use SHA tags for reliable deploys.
+- **Container cold start takes ~3-5 min** — includes downloading 141MB ML bundle from Google Drive on first start.
+- **Azure Log Stream** (App Services → Monitoring → Log stream) shows live Python logs including tracebacks — use it to debug future errors.
+
+---
+
+### Current State After Today
+
+- ✅ All ML API bugs fixed and deployed (commit `1f4ab9a` on `shafayethossai/atmos-ml-api`)
+- ✅ Deploy pipeline fixed (SHA tags, no more stale image caching)
+- ✅ All 5 endpoints verified working via Postman
+- ⬜ Phase 3 (Backend Integration) — not started yet
+
+---
+
+### Where to Start Next Session
+
+**Start Phase 3 — Backend Integration (Step 11 in the checklist):**
+
+1. Add to `ATMOS-Backend/.env`:
+   ```
+   ML_API_URL=https://atmos-ml-api-e8a4ameghchmhwbp.centralindia-01.azurewebsites.net
+   ML_SENSOR_KEY=atmos-sensor-key-2026
+   ML_READ_KEY=atmos-read-key-2026
+   ```
+2. Add ML config fields to `ATMOS-Backend/config/config.go`
+3. Update `ingest.go` to forward readings to ML API after saving to PostgreSQL
+4. Create `migrations/003_add_forecast_cache.sql`
+5. Create `util/ml_sync.go` background job (30 min fetch)
+6. Add forecast endpoints to Go backend
+
+**Repos:**
+- Main project: `shafayethossai/ATMOS` (frontend + backend)
+- ML API: `shafayethossai/atmos-ml-api` (deployed on Azure)
+- ML API live URL: `https://atmos-ml-api-e8a4ameghchmhwbp.centralindia-01.azurewebsites.net`
