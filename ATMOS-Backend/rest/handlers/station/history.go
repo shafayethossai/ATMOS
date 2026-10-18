@@ -33,7 +33,7 @@ func (h *Handler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	result := make([]point, len(points))
 	for i, p := range points {
 		result[i] = point{
-			Time: p.Time.Format("15:04"),
+			Time: p.Time.UTC().Format("2006-01-02T15:04:05Z"),
 			AQI:  p.AQI,
 			PM25: p.PM25,
 			CO:   p.CO,

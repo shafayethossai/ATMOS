@@ -1,20 +1,57 @@
-CLAUDE.md
+# ============================================================
+# ATMOS PROJECT — CENTRAL GITIGNORE
+# ============================================================
+# BACKEND   → ATMOS-Backend/
+# FRONTEND  → ATMOS-Frontend/
+# ML API    → ATMOS-ML-API/
+# GENERAL   → applies to all parts
+# ============================================================
+
+
+# ── BACKEND ─────────────────────────────────────────────────
 ATMOS-Backend/.env
+ATMOS-Backend/*.exe
+ATMOS-Backend/*.test
+ATMOS-Backend/atmos-backend
+ATMOS-Backend/tmp/
+
+
+# ── FRONTEND ─────────────────────────────────────────────────
+ATMOS-Frontend/.env
+ATMOS-Frontend/.env.local
+ATMOS-Frontend/.env.production
+ATMOS-Frontend/node_modules/
+ATMOS-Frontend/dist/
+ATMOS-Frontend/.vite/
+
+
+# ── ML API ───────────────────────────────────────────────────
+ATMOS-ML-API/.env
+ATMOS-ML-API/atmos_bundle/
+ATMOS-ML-API/atmos_live.db
+ATMOS-ML-API/__pycache__/
+ATMOS-ML-API/*.pyc
+ATMOS-ML-API/*.pyo
+ATMOS-ML-API/.env.*
+ATMOS-ML-API/*.PublishSettings
+
+
+# ── GENERAL ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.env
+.env.*
+
+# Claude Code private files
+CLAUDE.md
 FRONTEND.md
 BACKEND_API.md
 BACKEND_GUIDE.md
-ATMOS-Frontend/.env
 atmos_main.ino
 
-
-/*
-
-now my software part is almost done. so my hardware also done. hardware was
-  my friend part. so i bring hardware from him. now i will integrate hardware
-  to software. so that we can show real data to dashboard. so i need a plan.
-  first i need to setup arduino ide based on my hardware. after that i should
-  change in code so that data forward as a database format. we use esp32. i
-  listen it sometimes loose the connection or change the route. so i need to
-  fix this. so in this file outside of frontend, backend. creat a file name  hardware+software+connection.md and here explain to.
-
-*/
+# ML Model notebook outputs (large files)
+ML\ Model/*.db
+ML\ Model/__pycache__/
+ML\ Model/*.pyc

@@ -50,10 +50,11 @@ export function Sparkline({ data, dataKey, color, fixedMax, limitVal, limitLabel
           fill="#94a3b8" fontSize="8" fontFamily="DM Mono, monospace">{t}</text>
       ))}
 
-      {/* X-axis time labels — dynamic step so ~6 labels max */}
+      {/* X-axis time labels — exactly 5 labels at evenly-spaced positions */}
       {(() => {
-        const step = Math.max(1, Math.ceil(data.length / 6))
-        return data.map((d, i) => (i % step === 0 || i === data.length - 1) && (
+        const n = data.length - 1
+        const indices = new Set([0, Math.round(n/4), Math.round(n/2), Math.round(3*n/4), n])
+        return data.map((d, i) => !indices.has(i) ? null : (
           <text key={i} x={toX(i)} y={h - 4} textAnchor="middle"
             fill="#94a3b8" fontSize="8" fontFamily="DM Mono, monospace">{d.time}</text>
         ))

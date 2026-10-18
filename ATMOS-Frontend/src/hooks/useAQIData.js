@@ -69,7 +69,10 @@ export function useAQIData(intervalMs = 5000) {
         }
 
         if (hist?.points?.length) {
-          setHistory(hist.points)
+          setHistory(hist.points.map(p => ({
+            ...p,
+            time: fmtShortTime(new Date(p.time)),
+          })))
         }
       } else {
         // Dev mock mode: generate random sensor values

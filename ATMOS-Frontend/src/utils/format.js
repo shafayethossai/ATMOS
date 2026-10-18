@@ -7,7 +7,7 @@ export function fmtTime(date) {
 }
 
 export function fmtShortTime(date) {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 export function fmtDate(date) {

@@ -1,0 +1,33 @@
+-- +migrate Up
+
+ALTER TABLE sensor_readings
+    ADD COLUMN pm1_0 NUMERIC(7,2) NOT NULL DEFAULT 0,
+    ADD COLUMN pm1_0_after NUMERIC(7,2) NOT NULL DEFAULT 0,
+    ADD COLUMN mq7_raw INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN mq7_voltage NUMERIC(6,3) NOT NULL DEFAULT 0,
+    ADD COLUMN mq135_raw INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN mq135_voltage NUMERIC(6,3) NOT NULL DEFAULT 0,
+    ADD COLUMN mq131_raw INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN mq131_voltage NUMERIC(6,3) NOT NULL DEFAULT 0,
+    ADD COLUMN mg811_raw INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN mg811_voltage NUMERIC(6,3) NOT NULL DEFAULT 0,
+    ADD COLUMN purification_pct NUMERIC(5,2) NOT NULL DEFAULT 0,
+    ADD COLUMN fan_auto BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN fan_running BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- +migrate Down
+
+ALTER TABLE sensor_readings
+    DROP COLUMN fan_running,
+    DROP COLUMN fan_auto,
+    DROP COLUMN purification_pct,
+    DROP COLUMN mg811_voltage,
+    DROP COLUMN mg811_raw,
+    DROP COLUMN mq131_voltage,
+    DROP COLUMN mq131_raw,
+    DROP COLUMN mq135_voltage,
+    DROP COLUMN mq135_raw,
+    DROP COLUMN mq7_voltage,
+    DROP COLUMN mq7_raw,
+    DROP COLUMN pm1_0_after,
+    DROP COLUMN pm1_0;
