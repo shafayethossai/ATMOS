@@ -2,7 +2,9 @@ package station
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"time"
 
 	"backend/repo"
 	"backend/util"
@@ -100,6 +102,27 @@ func (h *Handler) IngestReading(w http.ResponseWriter, r *http.Request) {
 	if err := h.stationRepo.InsertReading(reading); err != nil {
 		util.SendError(w, http.StatusInternalServerError, "failed to store reading")
 		return
+	}
+
+	// Forward to ML API in background so device response is not delayed.
+	if h.mlClient != nil {
+		go func() {
+			payload := util.MLReadingPayload{
+				DeviceID:   reading.DeviceID,
+				Location:   util.StationToMLStation(reading.StationID),
+				ObservedAt: time.Now().UTC().Format(time.RFC3339),
+				PM25:       reading.PM25,
+				PM10:       reading.PM10,
+				// convert stored PPM/PPB → µg/m³ as required by ML API
+				CarbonMonoxide:  reading.CO * 1.145,
+				NitrogenDioxide: reading.NO2 * 1.88,
+				SulphurDioxide:  0,
+				Ozone:           reading.O3 * 1.96,
+			}
+			if err := h.mlClient.ForwardReading(payload); err != nil {
+				log.Printf("ml forward: %v", err)
+			}
+		}()
 	}
 
 	util.SendData(w, http.StatusCreated, map[string]any{

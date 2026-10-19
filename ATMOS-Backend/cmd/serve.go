@@ -11,6 +11,7 @@ import (
 	stationH "backend/rest/handlers/station"
 	userH "backend/rest/handlers/user"
 	"backend/rest/middlewares"
+	"backend/util"
 )
 
 func Serve() {
@@ -33,9 +34,17 @@ func Serve() {
 
 	userRepo := repo.NewUserRepo(dbCon)
 	stationRepo := repo.NewStationRepo(dbCon)
+	forecastRepo := repo.NewForecastRepo(dbCon)
+
+	var mlClient *util.MLClient
+	if cnf.MLApiURL != "" {
+		mlClient = util.NewMLClient(cnf.MLApiURL, cnf.MLSensorKey, cnf.MLReadKey)
+		util.StartMLSync(mlClient, forecastRepo)
+		fmt.Println("✅ ML API integration enabled:", cnf.MLApiURL)
+	}
 
 	userHandler := userH.NewHandler(cnf, userRepo, mw, dbCon)
-	stationHandler := stationH.NewHandler(cnf, stationRepo, mw, dbCon)
+	stationHandler := stationH.NewHandler(cnf, stationRepo, forecastRepo, userRepo, mw, mlClient)
 
 	server := rest.NewServer(
 		cnf,

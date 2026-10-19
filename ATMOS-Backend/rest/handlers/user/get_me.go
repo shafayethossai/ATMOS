@@ -19,11 +19,13 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.SendData(w, http.StatusOK, map[string]string{
+	util.SendData(w, http.StatusOK, map[string]any{
 		"id":         user.ID,
 		"name":       user.Name,
 		"email":      user.Email,
 		"location":   user.Location,
+		"ml_station": user.MLStation,
+		"is_admin":   user.IsAdmin,
 		"avatar_url": user.AvatarURL,
 	})
 }

@@ -702,12 +702,12 @@ Create `ATMOS-Frontend/src/pages/AdminDashboard.jsx`:
 [✅] 8. Add secrets to GitHub (Azure publish profile + API keys)
 [✅] 9. Fix DailyForecasterCity class missing from serve.py
 [✅] 10. Verify ML API live → /healthz returns ok:true
-[ ] 11. Add ML_API_URL + keys to backend .env
-[ ] 12. Update ingest.go to forward readings to ML API
-[ ] 13. Create migration 003 (forecast cache tables + is_admin + ml_station)
-[ ] 14. Add ml_sync.go background job (30 min fetch)
-[ ] 15. Add /api/forecast/hourly and /api/forecast/daily endpoints
-[ ] 16. Create util/location.go (area → ML station mapping)
+[✅] 11. Add ML_API_URL + keys to backend .env
+[✅] 12. Update ingest.go to forward readings to ML API
+[✅] 13. Create migration 003 (forecast cache tables + is_admin + ml_station)
+[✅] 14. Add ml_sync.go background job (30 min fetch)
+[✅] 15. Add /api/forecast/hourly and /api/forecast/daily endpoints
+[✅] 16. Create util/location.go (area → ML station mapping)
 [ ] 17. Update Dashboard.jsx with forecast cards
 [ ] 18. Update Profile.jsx with location dropdown
 [ ] 19. Add /api/admin/* endpoints + RequireAdmin middleware

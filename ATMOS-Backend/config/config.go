@@ -30,6 +30,10 @@ type Config struct {
 	CloudinaryCloudName string
 	CloudinaryAPIKey    string
 	CloudinaryAPISecret string
+
+	MLApiURL    string
+	MLSensorKey string
+	MLReadKey   string
 }
 
 var configuration *Config
@@ -152,6 +156,11 @@ func loadConfig() {
 		os.Exit(1)
 	}
 
+	// Optional — ML API
+	mlApiURL    := os.Getenv("ML_API_URL")
+	mlSensorKey := os.Getenv("ML_SENSOR_KEY")
+	mlReadKey   := os.Getenv("ML_READ_KEY")
+
 	configuration = &Config{
 		Version:     version,
 		ServiceName: serviceName,
@@ -174,6 +183,10 @@ func loadConfig() {
 		CloudinaryCloudName: cloudinaryCloudName,
 		CloudinaryAPIKey:    cloudinaryAPIKey,
 		CloudinaryAPISecret: cloudinaryAPISecret,
+
+		MLApiURL:    mlApiURL,
+		MLSensorKey: mlSensorKey,
+		MLReadKey:   mlReadKey,
 	}
 }
 

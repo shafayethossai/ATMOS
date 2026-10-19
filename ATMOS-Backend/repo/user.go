@@ -15,6 +15,8 @@ type User struct {
 	AvatarURL    string    `db:"avatar_url"`
 	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`
+	IsAdmin      bool      `db:"is_admin"`
+	MLStation    string    `db:"ml_station"`
 }
 
 type OTPToken struct {
@@ -43,7 +45,7 @@ type UserRepo interface {
 	CreateUser(name, email, hash string) (*User, error)
 	FindByID(id string) (*User, error)
 	UpdatePassword(userID, newHash string) error
-	UpdateProfile(userID, name, location string) error
+	UpdateProfile(userID, name, location, mlStation string) error
 	UpdateAvatar(userID, url string) error
 
 	SaveSignupOTP(email, code, name, hash string, expiresAt time.Time) error
@@ -138,11 +140,11 @@ func (r *userRepo) UpdatePassword(userID, newHash string) error {
 	return err
 }
 
-func (r *userRepo) UpdateProfile(userID, name, location string) error {
+func (r *userRepo) UpdateProfile(userID, name, location, mlStation string) error {
 	_, err := r.db.Exec(`
-		UPDATE users SET name = $1, location = $2, updated_at = NOW()
-		WHERE id = $3`,
-		name, location, userID)
+		UPDATE users SET name = $1, location = $2, ml_station = $3, updated_at = NOW()
+		WHERE id = $4`,
+		name, location, mlStation, userID)
 	return err
 }
 

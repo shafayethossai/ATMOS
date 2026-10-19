@@ -30,7 +30,8 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.userRepo.UpdateProfile(userID, req.Name, req.Location); err != nil {
+	mlStation := util.AreaToMLStation(req.Location)
+	if err := h.userRepo.UpdateProfile(userID, req.Name, req.Location, mlStation); err != nil {
 		util.SendError(w, http.StatusInternalServerError, "failed to update profile")
 		return
 	}
@@ -41,11 +42,13 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.SendData(w, http.StatusOK, map[string]string{
+	util.SendData(w, http.StatusOK, map[string]any{
 		"id":         user.ID,
 		"name":       user.Name,
 		"email":      user.Email,
 		"location":   user.Location,
+		"ml_station": user.MLStation,
+		"is_admin":   user.IsAdmin,
 		"avatar_url": user.AvatarURL,
 	})
 }
