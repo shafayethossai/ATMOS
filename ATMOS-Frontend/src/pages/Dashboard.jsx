@@ -1,7 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { getMe } from '../api/profileApi'
 import { AQIChart } from '../components/ui/AQIChart'
-import { ArcGauge } from '../components/ui/ArcGauge'
 import { MetricCard } from '../components/ui/MetricCard'
 import { SensorCard } from '../components/ui/SensorCard'
 import { Sparkline } from '../components/ui/Sparkline'
@@ -9,8 +8,156 @@ import { StatusBadge } from '../components/ui/StatusBadge'
 import { Navbar } from '../components/layout/Navbar'
 import { PageContainer } from '../components/layout/PageContainer'
 import { useStation } from '../context/StationContext'
-import { AQI_LEVELS, AQI_LEVELS_ORDERED, SYSTEM_INFO } from '../data/mockAQI'
+import { AQI_LEVELS, AQI_LEVELS_ORDERED } from '../data/mockAQI'
 import { useAQIData } from '../hooks/useAQIData'
+import { getHourlyForecast, getDailyForecast } from '../api/forecastApi'
+
+function aqiLevelName(v) {
+  if (v <= 50)  return 'Good'
+  if (v <= 100) return 'Moderate'
+  if (v <= 150) return 'Sensitive Groups'
+  if (v <= 200) return 'Unhealthy'
+  if (v <= 300) return 'Very Unhealthy'
+  return 'Hazardous'
+}
+
+const DO_ADVICE = {
+  'Good': [
+    { bg: 'rgba(34,197,94,.12)',  icon: '🪟', title: 'Open windows freely',      sub: 'Outdoor air quality is excellent today' },
+    { bg: 'rgba(34,197,94,.12)',  icon: '🏃', title: 'Exercise outdoors freely', sub: 'No restrictions for any group' },
+    { bg: 'rgba(59,130,246,.12)', icon: '💨', title: 'Purifier on LOW or OFF',   sub: 'Indoor air is naturally clean right now' },
+  ],
+  'Moderate': [
+    { bg: 'rgba(251,191,36,.12)', icon: '🪟', title: 'Windows OK with caution',  sub: 'Sensitive people may want them closed' },
+    { bg: 'rgba(59,130,246,.12)', icon: '💨', title: 'Purifier on LOW',           sub: 'Light filtering is enough at this level' },
+    { bg: 'rgba(34,197,94,.12)',  icon: '🏃', title: 'Outdoor exercise is fine',  sub: 'Unusually sensitive people: take it easy' },
+  ],
+  'Sensitive Groups': [
+    { bg: 'rgba(251,191,36,.12)', icon: '🪟', title: 'Limit window opening',      sub: 'Keep closed during peak hours (10am–4pm)' },
+    { bg: 'rgba(59,130,246,.12)', icon: '💨', title: 'Run purifier on MEDIUM',    sub: 'Continuous filtering recommended' },
+    { bg: 'rgba(251,191,36,.12)', icon: '🏃', title: 'Reduce outdoor exertion',   sub: 'Short walks OK — avoid running or cycling' },
+    { bg: 'rgba(251,191,36,.12)', icon: '😷', title: 'Mask if you are sensitive', sub: 'Asthma, elderly, children: wear a mask' },
+  ],
+  'Unhealthy': [
+    { bg: 'rgba(239,68,68,.12)',  icon: '🪟', title: 'Keep windows closed',       sub: 'Outdoor air is worse than indoor right now' },
+    { bg: 'rgba(59,130,246,.12)', icon: '💨', title: 'Run purifier on HIGH',       sub: 'Full speed for 2+ hours — all day if possible' },
+    { bg: 'rgba(251,191,36,.12)', icon: '😷', title: 'Wear N95 if going out',      sub: 'Surgical mask not enough at this level' },
+    { bg: 'rgba(239,68,68,.12)',  icon: '🏃', title: 'Skip outdoor exercise',      sub: 'Wait for AQI to drop below 150' },
+  ],
+  'Very Unhealthy': [
+    { bg: 'rgba(239,68,68,.12)',  icon: '🪟', title: 'All windows closed',         sub: 'Seal gaps if possible — air is dangerous' },
+    { bg: 'rgba(59,130,246,.12)', icon: '💨', title: 'Purifier on MAX all day',    sub: 'Replace filter if it has been 3+ months' },
+    { bg: 'rgba(239,68,68,.12)',  icon: '😷', title: 'N95 mandatory outdoors',     sub: 'Even brief exposure is harmful here' },
+    { bg: 'rgba(239,68,68,.12)',  icon: '🏠', title: 'Stay indoors',               sub: 'Avoid all non-essential outdoor activity' },
+  ],
+  'Hazardous': [
+    { bg: 'rgba(239,68,68,.12)',  icon: '⚠️', title: 'Emergency — stay inside',    sub: 'Avoid all outdoor exposure — health alert' },
+    { bg: 'rgba(59,130,246,.12)', icon: '💨', title: 'Purifier on MAX non-stop',   sub: 'Critical — maximize filtration continuously' },
+    { bg: 'rgba(239,68,68,.12)',  icon: '😷', title: 'N95 + goggles if outside',   sub: 'Eyes are also affected at hazardous levels' },
+    { bg: 'rgba(239,68,68,.12)',  icon: '📞', title: 'Check on vulnerable people', sub: 'Elderly, children, sick — check they are safe' },
+  ],
+}
+
+function fmtDate(s) {
+  try { return new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }
+  catch { return s.slice(5) }
+}
+
+function DailyForecastChart({ forecast }) {
+  const n = forecast.length
+  if (n < 2) return null
+
+  const W = 320, H = 120
+  const PAD = { left: 28, right: 6, top: 8, bottom: 22 }
+  const CW = W - PAD.left - PAD.right
+  const CH = H - PAD.top - PAD.bottom
+  const Y_MIN = 50, Y_MAX = 250
+  const chartBottom = PAD.top + CH
+
+  const xOf = i => PAD.left + (i / (n - 1)) * CW
+  const yOf = v => PAD.top + (1 - (Math.min(Math.max(v, Y_MIN), Y_MAX) - Y_MIN) / (Y_MAX - Y_MIN)) * CH
+
+  const hiPts  = forecast.map((d, i) => `${xOf(i).toFixed(1)},${yOf(d.aqi_high ?? d.aqi + 15).toFixed(1)}`).join(' ')
+  const loPts  = [...forecast].reverse().map((d, i) => `${xOf(n - 1 - i).toFixed(1)},${yOf(d.aqi_low ?? d.aqi - 15).toFixed(1)}`).join(' ')
+  const linePath = forecast.map((d, i) => `${i === 0 ? 'M' : 'L'}${xOf(i).toFixed(1)} ${yOf(d.aqi).toFixed(1)}`).join(' ')
+
+  const zones  = [
+    { min: 50,  max: 100, color: '#00E400' },
+    { min: 100, max: 150, color: '#FF7E00' },
+    { min: 150, max: 200, color: '#FF0000' },
+    { min: 200, max: 250, color: '#8F3F97' },
+  ]
+  const xTicks = [0, Math.floor(n / 4), Math.floor(n / 2), Math.floor(3 * n / 4), n - 1]
+  const yTicks = [100, 150, 200]
+
+  return (
+    <>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible', marginBottom: 10 }}>
+        {zones.map(z => (
+          <rect key={z.min}
+            x={PAD.left} y={yOf(Math.min(z.max, Y_MAX)).toFixed(1)}
+            width={CW} height={(yOf(Math.max(z.min, Y_MIN)) - yOf(Math.min(z.max, Y_MAX))).toFixed(1)}
+            fill={z.color} opacity={0.055}
+          />
+        ))}
+        <polygon points={`${hiPts} ${loPts}`} fill="rgba(96,165,250,.15)" />
+        <polyline points={hiPts} fill="none" style={{ stroke: 'rgba(96,165,250,.3)', strokeWidth: 0.8, strokeDasharray: '3,3' }} />
+        <polyline points={loPts} fill="none" style={{ stroke: 'rgba(96,165,250,.3)', strokeWidth: 0.8, strokeDasharray: '3,3' }} />
+        <path d={linePath} fill="none" stroke="#FF7E00" strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx={xOf(0).toFixed(1)} cy={yOf(forecast[0].aqi).toFixed(1)} r={3} fill="#FF7E00" />
+        <line x1={PAD.left} y1={chartBottom} x2={PAD.left + CW} y2={chartBottom} style={{ stroke: 'var(--border)', strokeWidth: 0.8 }} />
+        {xTicks.map(i => (
+          <g key={i}>
+            <line x1={xOf(i).toFixed(1)} y1={chartBottom} x2={xOf(i).toFixed(1)} y2={chartBottom + 3} style={{ stroke: 'var(--border)', strokeWidth: 0.8 }} />
+            <text x={xOf(i).toFixed(1)} y={H - 4} textAnchor="middle" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 7, fill: 'var(--text-3)' }}>
+              {fmtDate(forecast[i].date)}
+            </text>
+          </g>
+        ))}
+        {yTicks.map(v => (
+          <g key={v}>
+            <line x1={PAD.left} y1={yOf(v).toFixed(1)} x2={PAD.left + CW} y2={yOf(v).toFixed(1)} style={{ stroke: 'var(--border)', strokeWidth: 0.5, strokeDasharray: '2,4' }} />
+            <text x={PAD.left - 4} y={(yOf(v) + 3).toFixed(1)} textAnchor="end" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 7, fill: 'var(--text-3)' }}>
+              {v}
+            </text>
+          </g>
+        ))}
+      </svg>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <tbody>
+          {forecast.slice(0, 7).map((d, i) => {
+            const lvl   = aqiLevelName(d.aqi)
+            const lc    = AQI_LEVELS[lvl]
+            const short = lvl === 'Sensitive Groups' ? 'USG' : lvl === 'Very Unhealthy' ? 'V.Unhealthy' : lvl
+            return (
+              <tr key={i}>
+                <td style={{ padding: '4px 0', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', width: 54, borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                  {fmtDate(d.date)}
+                </td>
+                <td style={{ padding: '4px 0', fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: lc.textVar, width: 38, borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                  {d.aqi}
+                </td>
+                <td style={{ padding: '4px 0', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 600, padding: '2px 7px', borderRadius: 8, background: `${lc.color}20`, color: lc.textVar }}>
+                    {short}
+                  </span>
+                </td>
+                <td style={{ padding: '4px 0', fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', textAlign: 'right', borderTop: i > 0 ? '1px solid var(--border)' : 'none', fontVariantNumeric: 'tabular-nums' }}>
+                  {d.aqi_low}–{d.aqi_high}
+                </td>
+              </tr>
+            )
+          })}
+          <tr>
+            <td colSpan={4} style={{ textAlign: 'center', padding: '6px 0', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-3)', letterSpacing: '.05em' }}>
+              + {forecast.length - 7} MORE DAYS
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </>
+  )
+}
 
 // PM2.5 and CO sparkline definitions
 // c = dot/bg color (EPA vivid), tc = readable text color via CSS var
@@ -72,6 +219,13 @@ export default function Dashboard() {
   } = useAQIData()
 
   const cfg = AQI_LEVELS[aqiLevel]
+
+  const [hourly, setHourly] = useState(null)
+  const [daily,  setDaily]  = useState(null)
+  useEffect(() => {
+    getHourlyForecast().then(setHourly).catch(() => {})
+    getDailyForecast().then(setDaily).catch(() => {})
+  }, [])
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -497,88 +651,114 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* ── Key Indicators: arc gauges ── */}
+            {/* ── Hourly Forecast ── */}
             <div style={{
               background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '12px 16px', flexShrink: 0,
+              borderRadius: 14, padding: '12px 14px', flexShrink: 0,
               boxShadow: 'var(--shadow-card)',
             }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 10 }}>
-                KEY INDICATORS
+                HOURLY FORECAST
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
-                {sensors.slice(0, 3).map(s => (
-                  <div key={s.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', fontWeight: 600, marginBottom: 2 }}>{s.name}</div>
-                    <ArcGauge value={s.value} max={s.max} safe={s.safe} color={s.color} size={86} showValue />
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
-                <div style={{ width: 2, height: 8, background: 'var(--text-3)', borderRadius: 1 }} />
-                safe threshold marker
-              </div>
+              {!hourly || hourly.status === 'no_data' ? (
+                <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', textAlign: 'center', padding: '10px 0' }}>
+                  No forecast cached yet
+                </div>
+              ) : hourly.status === 'warming_up' ? (
+                <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', textAlign: 'center', padding: '10px 0' }}>
+                  Collecting data — {hourly.hours_available}/{hourly.hours_required} hours ready
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {(hourly.forecasts || []).map(f => {
+                    const lvl       = aqiLevelName(f.aqi)
+                    const lc        = AQI_LEVELS[lvl]
+                    const arrow     = f.trend === 'worsening' ? '↑' : f.trend === 'improving' ? '↓' : '→'
+                    const trendClr  = f.trend === 'worsening' ? '#ef4444' : f.trend === 'improving' ? '#22c55e' : 'var(--text-3)'
+                    const changeStr = f.change_from_current > 0 ? `+${f.change_from_current}` : `${f.change_from_current}`
+                    return (
+                      <div key={f.horizon_hours} style={{
+                        background: 'var(--surface-2)', border: `1px solid ${lc.color}35`,
+                        borderRadius: 10, padding: '8px 6px',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                      }}>
+                        <span style={{ fontSize: 8, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-3)', letterSpacing: '.06em' }}>
+                          +{f.horizon_hours}H
+                        </span>
+                        <span style={{ fontSize: 26, fontWeight: 700, fontFamily: 'var(--font-mono)', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color: lc.textVar }}>
+                          {f.aqi}
+                        </span>
+                        <span style={{ fontSize: 7, fontFamily: 'var(--font-mono)', fontWeight: 600, color: lc.textVar, textAlign: 'center', lineHeight: 1.3 }}>
+                          {lvl === 'Sensitive Groups' ? 'Sensitive\nGroups' : lvl}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2, fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: trendClr }}>
+                          <span style={{ fontSize: 13 }}>{arrow}</span>
+                          <span>{changeStr}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* ── Classification Scale ── */}
+            {/* ── What Should I Do ── */}
             <div style={{
               background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '12px 16px', flexShrink: 0,
+              borderRadius: 14, padding: '12px 14px', flexShrink: 0,
               boxShadow: 'var(--shadow-card)',
             }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 8 }}>
-                EPA CLASSIFICATION SCALE
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 10 }}>
+                WHAT SHOULD I DO?
               </div>
-              {AQI_LEVELS_ORDERED.map(level => {
-                const c = AQI_LEVELS[level]
-                const isActive = level === aqiLevel
-                return (
-                  <div key={level} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '6px 10px', borderRadius: 8,
-                    background: isActive ? c.bg : 'transparent',
-                    border: isActive ? `1px solid ${c.color}40` : '1px solid transparent',
-                    marginBottom: 3, transition: 'background 0.3s',
-                  }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color: isActive ? c.textVar : 'var(--text-1)' }}>{level}</div>
-                      <div style={{ fontSize: 9, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>AQI {c.range}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                {(DO_ADVICE[aqiLevel] ?? DO_ADVICE['Unhealthy']).map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, background: item.bg, marginTop: 1,
+                    }}>{item.icon}</div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-1)', lineHeight: 1.3 }}>{item.title}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{item.sub}</div>
                     </div>
-                    {isActive && (
-                      <span style={{
-                        fontSize: 8, fontFamily: 'var(--font-mono)', fontWeight: 700,
-                        background: c.color, color: c.badgeText,
-                        padding: '2px 8px', borderRadius: 10, letterSpacing: '0.04em',
-                      }}>CURRENT</span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* ── System Info ── */}
-            <div style={{
-              background: 'var(--surface-2)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '12px 16px', flexShrink: 0,
-              boxShadow: 'var(--shadow-card)',
-            }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 8 }}>
-                SYSTEM INFO
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {[
-                  { k: 'Station:',  v: SYSTEM_INFO.station  },
-                  { k: 'Location:', v: SYSTEM_INFO.location  },
-                  { k: 'Dept.:',    v: SYSTEM_INFO.dept      },
-                  { k: 'Method:',   v: SYSTEM_INFO.method    },
-                ].map(r => (
-                  <div key={r.k} style={{ display: 'flex', gap: 6, fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-3)', fontFamily: 'var(--font-mono)', minWidth: 64, flexShrink: 0 }}>{r.k}</span>
-                    <span style={{ fontWeight: 600, color: 'var(--text-1)' }}>{r.v}</span>
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* ── 30-Day Forecast ── */}
+            <div style={{
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 14, padding: '12px 14px', flexShrink: 0,
+              boxShadow: 'var(--shadow-card)',
+            }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-2)', letterSpacing: '0.07em', marginBottom: 8 }}>
+                30-DAY FORECAST
+              </div>
+              {daily && (
+                <div style={{ fontSize: 8, fontFamily: 'var(--font-mono)', fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: 8,
+                    background: daily.basis === 'live_sensor_history' ? 'rgba(34,197,94,.12)' : 'rgba(251,191,36,.12)',
+                    color:      daily.basis === 'live_sensor_history' ? '#16a34a' : '#92400e',
+                    border:     daily.basis === 'live_sensor_history' ? '1px solid rgba(34,197,94,.25)' : '1px solid rgba(251,191,36,.25)',
+                  }}>
+                    {daily.basis === 'live_sensor_history' ? '● Live sensor data' : daily.basis === 'seasonal_only' ? '◐ Seasonal patterns' : '○ No data'}
+                  </span>
+                  {daily.history_days_used > 0 && (
+                    <span style={{ color: 'var(--text-3)' }}>{daily.history_days_used} days used</span>
+                  )}
+                </div>
+              )}
+              {!daily || !daily.forecast || daily.forecast.length === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', textAlign: 'center', padding: '12px 0' }}>
+                  No forecast available yet
+                </div>
+              ) : (
+                <DailyForecastChart forecast={daily.forecast} />
+              )}
             </div>
 
           </div>{/* end right sidebar */}
