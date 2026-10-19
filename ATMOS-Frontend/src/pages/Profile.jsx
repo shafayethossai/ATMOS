@@ -18,6 +18,43 @@ const cardStyle = {
   boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
 }
 
+const LOCATION_GROUPS = [
+  {
+    label: 'North & East Dhaka  —  Dhaka station',
+    mlStation: 'Dhaka',
+    areas: ['Bashundhara', 'Uttara', 'Gulshan', 'Banani', 'Baridhara', 'Badda', 'Khilkhet', 'Rampura', 'Khilgaon'],
+  },
+  {
+    label: 'West & Central Dhaka  —  Dhaka station',
+    mlStation: 'Dhaka',
+    areas: ['Mirpur', 'Dhanmondi', 'Mohammadpur', 'Shyamoli', 'Adabor', 'Kafrul', 'Agargaon'],
+  },
+  {
+    label: 'South Dhaka  —  Azimpur station',
+    mlStation: 'Azimpur',
+    areas: ['Azimpur', 'Lalbagh', 'Old Dhaka', 'Sutrapur', 'Wari'],
+  },
+  {
+    label: 'City Centre  —  Paltan station',
+    mlStation: 'Paltan',
+    areas: ['Paltan', 'Motijheel', 'Shahbagh', 'Ramna', 'Segunbagicha'],
+  },
+  {
+    label: 'Tongi / Gazipur  —  Tungi station',
+    mlStation: 'Tungi',
+    areas: ['Tongi', 'Gazipur', 'Ashulia', 'Savar'],
+  },
+]
+
+function getMLStation(area) {
+  if (!area) return null
+  const lower = area.toLowerCase()
+  for (const g of LOCATION_GROUPS) {
+    if (g.areas.some(a => a.toLowerCase() === lower)) return g.mlStation
+  }
+  return 'Dhaka'
+}
+
 function ProfileInput({ label, ...props }) {
   return (
     <div>
@@ -198,21 +235,43 @@ export default function Profile() {
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={labelStyle}>LOCATION</label>
                 <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, pointerEvents: 'none' }}>📍</span>
-                  <input
+                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, pointerEvents: 'none', zIndex: 1 }}>📍</span>
+                  <select
                     value={location} onChange={e => setLocation(e.target.value)}
-                    placeholder="City, Country"
                     style={{
-                      width: '100%', padding: '10px 14px 10px 34px',
+                      width: '100%', padding: '10px 36px 10px 34px',
                       border: '1px solid var(--border)', borderRadius: 10,
                       fontSize: 14, fontFamily: 'var(--font-sans)',
-                      color: 'var(--text-1)', background: 'var(--surface-2)',
-                      outline: 'none', boxSizing: 'border-box',
+                      color: location ? 'var(--text-1)' : 'var(--text-3)',
+                      background: 'var(--surface-2)', outline: 'none',
+                      boxSizing: 'border-box', cursor: 'pointer', appearance: 'none',
                     }}
                     onFocus={e => (e.currentTarget.style.borderColor = '#2563eb')}
                     onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
-                  />
+                  >
+                    <option value="">— Select your area —</option>
+                    {LOCATION_GROUPS.map(group => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.areas.map(area => (
+                          <option key={area} value={area}>{area}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-3)', fontSize: 12 }}>▾</span>
                 </div>
+                {location && (
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-3)' }}>
+                    <span>ML forecast from</span>
+                    <span style={{
+                      padding: '1px 8px', borderRadius: 6, fontSize: 9, fontWeight: 600,
+                      background: 'rgba(37,99,235,.1)', color: '#2563eb',
+                      border: '1px solid rgba(37,99,235,.2)',
+                    }}>
+                      {getMLStation(location)} station
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
